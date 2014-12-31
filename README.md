@@ -1,8 +1,8 @@
 Inno Setup
 ==========
 
-Copyright (C) 1997-2013 Jordan Russell. All rights reserved.  
-Portions Copyright (C) 2000-2013 Martijn Laan. All rights reserved.  
+Copyright (C) 1997-2014 Jordan Russell. All rights reserved.  
+Portions Copyright (C) 2000-2014 Martijn Laan. All rights reserved.  
 For conditions of distribution and use, see LICENSE.TXT.
 
 Source code README
@@ -15,7 +15,7 @@ Source code README
   First you need to download the sources from Github. From the command line do:
 
   ```
-  > git clone git://github.com/jrsoftware/issrc.git is
+  > git clone https://github.com/jrsoftware/issrc.git is
   > cd is
   > git submodule init
   > git submodule update
@@ -33,7 +33,7 @@ Source code README
 
   To be able to contribute to Inno Setup, clone your own fork instead of
   cloning the main Inno Setup repository, commit your work on topic branches
-  and make pull requests. See [CONTRIBUTING.md](https://www.github.com/jrsoftware/issrc/blob/master/CONTRIBUTING.md).
+  and make pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Install Borland Delphi
 
@@ -60,7 +60,7 @@ Source code README
 - Install Microsoft MSXML
 
   Install Microsoft MSXML 4.0 SP2 if you haven't already done so.
-  See http://www.microsoft.com/downloads/details.aspx?FamilyID=3144b72b-b4f2-46da-b4b6-c5d7485f2b42&DisplayLang=en
+  See http://www.microsoft.com/en-us/download/details.aspx?id=19662
 
   If you are not sure whether you have MSXML 4.0 SP2 already, check for a
   file named msxml4.dll in your Windows System directory with a version number
@@ -71,23 +71,23 @@ Source code README
 - Install Microsoft HTML Help Workshop
 
   Install Microsoft HTML Help Workshop if you haven't already done so.
-  See http://www.microsoft.com/downloads/details.aspx?familyid=00535334-c8a6-452f-9aa0-d597d16580cc&displaylang=en
+  See http://www.microsoft.com/en-us/download/details.aspx?id=21138
 
   Note: Microsoft HTML Help Workshop is only needed to be able to compile the
   help files.
 
 - Building
 
-  To build all files run build.bat and follow the instructions.
+  To build all files run **build.bat** and follow the instructions.
 
-  To just compile Inno Setup run compile-unicode.bat for Unicode Inno Setup or
-  compile.bat for Non Unicode Inno Setup and follow the instructions.
+  To just compile Inno Setup run **compile-unicode.bat** for Unicode Inno Setup
+  or **compile.bat** for Non Unicode Inno Setup and follow the instructions.
 
   To just compile the Inno Setup help file and its web version run
-  ishelp\compile.bat and follow the instructions.
+  **ishelp\compile.bat** and follow the instructions.
 
   To just compile the Inno Setup Preprocessor help file and its web version run
-  Projects\Ispp\Help\compile.bat and follow the instructions.
+  **Projects\Ispp\Help\compile.bat** and follow the instructions.
 
 2. Delphi 2.0x users ONLY
 -------------------------
@@ -167,9 +167,6 @@ performs all (un)installation-related tasks.
 Setup program into the user's TEMP directory and runs it from there. It also
 displays the "This will install..." and /HELP message boxes.
 
-**ISPP\ISPPCC** - This is Inno Setup's ISCC command-line front-end with extra
-preprocessor related parameters added.
-
 **ISPP\ISPP** - This is a DLL implementing Inno Setup's preprocessor interface
 
 How do the projects link together?
@@ -183,7 +180,7 @@ How do the projects link together?
   clauses of the projects and units if you aren't sure if a project uses a
   particular unit.
 
-- ISPP and ISPPCC use various copies of other Inno Setup files. To synch these
+- ISPP uses various copies of other Inno Setup files. To synch these
   run synch-isfiles.bat.
 
 5. Source code tips
@@ -257,11 +254,12 @@ by Visual Studio 2005 from the Projects\lzma2\Encoder directory.
 **Files\isscint.dll** - Compiled by Visual Studio 2005 from Scintila 2.22 source
 code with scintilla-2.22-patch.txt applied.
 
-**Projects\\_shfolder.res** - shfolder.dll from a fresh install of IE 5.5 SP2 on
+**Projects\_shfolder.res** - shfolder.dll from a fresh install of IE 5.5 SP2 on
 NT 4.0 stored in a compiled resource file.
 
-**Projects\HelperEXEs.res** - Compiled by Visual Studio 2005 from the
-Projects\Helper directory and then stored in a compiled resource file.
+**Projects\Helper\x64\Release\Helper.exe**, **Projects\HelperEXEs.res** -
+Compiled by Visual Studio 2005 from the Projects\Helper directory and then
+stored in a compiled resource file.
 
 **Projects\LzmaDecode\LzmaDecodeInno.obj** - See Projects\LzmaDecode\compiling.txt.
 
@@ -270,7 +268,7 @@ See Projects\lzma2\Decoder\compiling.txt.
 
 **ishelp\ISHelpGen\ISHelpGen.exe** - See ishelp\ISHelpGen\compile.bat
 
-**Examples\MyProg.exe**, **Examples\MyProg-IA64.exe**, **Examples\MyProg-x64.exe** -
+**Examples\MyProg.exe**, **Examples\MyProg-x64.exe** -
 Compiled by Visual Studio 2005 from the Examples\MyProg directory.
 
 7. Inno Setup-specific editing guidelines for the help files

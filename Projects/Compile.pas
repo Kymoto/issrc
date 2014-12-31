@@ -2,7 +2,7 @@ unit Compile;
 
 {
   Inno Setup
-  Copyright (C) 1997-2012 Jordan Russell
+  Copyright (C) 1997-2014 Jordan Russell
   Portions by Martijn Laan
   For conditions of distribution and use, see LICENSE.TXT.
 
@@ -34,7 +34,7 @@ type
 implementation
 
 uses
-  CompPreprocInt, Commctrl, Consts, Classes, IniFiles, TypInfo,
+  CompPreprocInt, Commctrl, {$IFDEF IS_DXE}VCL.Consts{$ELSE}Consts{$ENDIF}, Classes, IniFiles, TypInfo,
   PathFunc, CmnFunc2, Struct, Int64Em, CompMsgs, SetupEnt,
   FileClass, Compress, CompressZlib, bzlib, LZMA, ArcFour, SHA1,
   MsgIDs, DebugStruct, VerInfo, ResUpdate, CompResUpdate,
@@ -135,6 +135,7 @@ type
     ssMessagesFile,
     ssMinVersion,
     ssOnlyBelowVersion,
+    ssOutput,
     ssOutputBaseFilename,
     ssOutputDir,
     ssOutputManifestFile,
@@ -152,6 +153,7 @@ type
     ssSignedUninstaller,
     ssSignedUninstallerDir,
     ssSignTool,
+    ssSignToolRetryCount,
     ssSlicesPerDisk,
     ssSolidCompression,
     ssSourceDir,
@@ -340,10 +342,11 @@ type
     {$IFDEF UNICODE} PreLangDataList, {$ENDIF} LangDataList: TList;
     SignToolList: TList;
     SignTool, SignToolParams: String;
+    SignToolRetryCount: Integer;
 
     OutputDir, OutputBaseFilename, OutputManifestFile, SignedUninstallerDir,
       ExeFilename: String;
-    FixedOutputDir, FixedOutputBaseFilename: Boolean;
+    Output, FixedOutput, FixedOutputDir, FixedOutputBaseFilename: Boolean;
     CompressMethod: TSetupCompressMethod;
     InternalCompressLevel, CompressLevel: Integer;
     InternalCompressProps, CompressProps: TLZMACompressorProps;
@@ -489,7 +492,7 @@ type
     procedure ReadTextFile(const Filename: String; const LangIndex: Integer; var Text: AnsiString);
     procedure SeparateDirective(const Line: PChar; var Key, Value: String);
     procedure ShiftDebugEntryIndexes(AKind: TDebugEntryKind);
-    procedure Sign(const ACommand, AParams, AExeFilename: String);
+    procedure Sign(const ACommand, AParams, AExeFilename: String; const RetryCount: Integer);
     procedure WriteDebugEntry(Kind: TDebugEntryKind; Index: Integer);
     procedure WriteCompiledCodeText(const CompiledCodeText: Ansistring);
     procedure WriteCompiledCodeDebugInfo(const CompiledCodeDebugInfo: AnsiString);
@@ -3943,23 +3946,19 @@ begin
         if not StrToVersionNumbers(Value, SetupHeader.OnlyBelowVersion) then
           Invalid;
       end;
+    ssOutput: begin
+        if not FixedOutput then
+          Output := StrToBool(Value);
+		end;
     ssOutputBaseFilename: begin
-        if not FixedOutputBaseFilename then begin
-          if Value = '' then
-            Invalid;
+        if not FixedOutputBaseFilename then
           OutputBaseFilename := Value;
-        end;
       end;
     ssOutputDir: begin
-        if not FixedOutputDir then begin
-          if Value = '' then
-            Invalid;
+        if not FixedOutputDir then
           OutputDir := Value;
-        end;
       end;
     ssOutputManifestFile: begin
-        if Value = '' then
-          Invalid;
         OutputManifestFile := Value;
       end;
     ssPassword: begin
@@ -4041,6 +4040,12 @@ begin
         end;
         if FindSignToolIndexByName(SignTool) = -1 then
           Invalid;
+      end;
+    ssSignToolRetryCount: begin
+        I := StrToIntDef(Value, -1);
+        if I < 0 then
+          Invalid;
+        SignToolRetryCount := I;
       end;
     ssSlicesPerDisk: begin
         I := StrToIntDef(Value, -1);
@@ -7271,6 +7276,7 @@ begin
     CodeCompiler.AddExport('GetCustomSetupExitCode', 'LongInt', False, '', 0);
     CodeCompiler.AddExport('PrepareToInstall', 'String !Boolean', False, '', 0);
     CodeCompiler.AddExport('RegisterExtraCloseApplicationsResources', '0', False, '', 0);
+    CodeCompiler.AddExport('CurInstallProgressChanged', '0 @LongInt @LongInt', False, '', 0);
 
     CodeCompiler.AddExport('InitializeUninstall', 'Boolean', False, '', 0);
     CodeCompiler.AddExport('DeinitializeUninstall', '0', False, '', 0);
@@ -7311,7 +7317,7 @@ begin
   SignToolList.Add(SignTool);
 end;
 
-procedure TSetupCompiler.Sign(const ACommand, AParams, AExeFilename: String);
+procedure TSetupCompiler.Sign(const ACommand, AParams, AExeFilename: String; const RetryCount: Integer);
 
   function FmtCommand(S: PChar; const AParams, AExeFileName: String): String;
   var
@@ -7352,45 +7358,63 @@ procedure TSetupCompiler.Sign(const ACommand, AParams, AExeFilename: String);
       end;
     end;
   end;
+  
+  procedure DoSign(const AFormattedCommand: String);
+  var
+    StartupInfo: TStartupInfo;
+    ProcessInfo: TProcessInformation;
+    LastError, ExitCode: DWORD;
+  begin
+    AddStatus(Format(SCompilerStatusSigning, [AFormattedCommand]));
+
+    FillChar(StartupInfo, SizeOf(StartupInfo), 0);
+    StartupInfo.cb := SizeOf(StartupInfo);
+    StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
+    StartupInfo.wShowWindow := SW_SHOW;
+    
+    if not CreateProcess(nil, PChar(AFormattedCommand), nil, nil, False,
+       CREATE_DEFAULT_ERROR_MODE, nil, PChar(CompilerDir), StartupInfo, ProcessInfo) then begin
+      LastError := GetLastError;
+      AbortCompileFmt(SCompilerSignToolCreateProcessFailed, [LastError,
+        Win32ErrorString(LastError)]);
+    end;
+    CloseHandle(ProcessInfo.hThread);
+    try
+      while True do begin
+        case WaitForSingleObject(ProcessInfo.hProcess, 50) of
+          WAIT_OBJECT_0: Break;
+          WAIT_TIMEOUT: CallIdleProc;
+        else
+          AbortCompile('Sign: WaitForSingleObject failed');
+        end;
+      end;
+      if not GetExitCodeProcess(ProcessInfo.hProcess, ExitCode) then
+        AbortCompile('Sign: GetExitCodeProcess failed');
+      if ExitCode <> 0 then
+        AbortCompileFmt(SCompilerSignToolNonZeroExitCode, [ExitCode]);
+    finally
+      CloseHandle(ProcessInfo.hProcess);
+    end;
+  end;
 
 var
   Params, Command: String;
-  StartupInfo: TStartupInfo;
-  ProcessInfo: TProcessInformation;
-  LastError, ExitCode: DWORD;
+  I: Integer;
 begin
   Params := FmtCommand(PChar(AParams), '', AExeFileName);
   Command := FmtCommand(PChar(ACommand), Params, AExeFileName);
-
-  AddStatus(Format(SCompilerStatusSigning, [Command]));
-
-  FillChar(StartupInfo, SizeOf(StartupInfo), 0);
-  StartupInfo.cb := SizeOf(StartupInfo);
-  StartupInfo.dwFlags := STARTF_USESHOWWINDOW;
-  StartupInfo.wShowWindow := SW_SHOW;
-
-  if not CreateProcess(nil, PChar(Command), nil, nil, False,
-     CREATE_DEFAULT_ERROR_MODE, nil, PChar(CompilerDir), StartupInfo, ProcessInfo) then begin
-    LastError := GetLastError;
-    AbortCompileFmt(SCompilerSignToolCreateProcessFailed, [LastError,
-      Win32ErrorString(LastError)]);
-  end;
-  CloseHandle(ProcessInfo.hThread);
-  try
-    while True do begin
-      case WaitForSingleObject(ProcessInfo.hProcess, 50) of
-        WAIT_OBJECT_0: Break;
-        WAIT_TIMEOUT: CallIdleProc;
-      else
-        AbortCompile('Sign: WaitForSingleObject failed');
-      end;
+  
+  for I := 0 to RetryCount do begin
+    try
+      DoSign(Command);
+      Break;
+    except on E: Exception do
+      if I < RetryCount then begin
+        AddStatus(Format(SCompilerStatusWillRetrySigning, [E.Message, RetryCount-I]));
+        Sleep(500); //wait a little bit before retrying
+      end else
+        raise;
     end;
-    if not GetExitCodeProcess(ProcessInfo.hProcess, ExitCode) then
-      AbortCompile('Sign: GetExitCodeProcess failed');
-    if ExitCode <> 0 then
-      AbortCompileFmt(SCompilerSignToolNonZeroExitCode, [ExitCode]);
-  finally
-    CloseHandle(ProcessInfo.hProcess);
   end;
 end;
 
@@ -7444,34 +7468,38 @@ procedure TSetupCompiler.Compile;
     HasNumbers: Boolean;
   begin
     { Delete SETUP.* and SETUP-*.BIN if they existed in the output directory }
-    DelFile(OutputBaseFilename + '.exe');
-    H := FindFirstFile(PChar(OutputDir + OutputBaseFilename + '-*.bin'), FindData);
-    if H <> INVALID_HANDLE_VALUE then begin
-      try
-        repeat
-          if FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = 0 then begin
-            N := FindData.cFileName;
-            if PathStartsWith(N, OutputBaseFilename) then begin
-              I := Length(OutputBaseFilename) + 1;
-              if (I <= Length(N)) and (N[I] = '-') then begin
-                Inc(I);
-                HasNumbers := False;
-                while (I <= Length(N)) and CharInSet(N[I], ['0'..'9']) do begin
-                  HasNumbers := True;
-                  Inc(I);
-                end;
-                if HasNumbers then begin
-                  if (I <= Length(N)) and CharInSet(UpCase(N[I]), ['A'..'Z']) then
+    if OutputBaseFilename <> '' then begin
+      DelFile(OutputBaseFilename + '.exe');
+      if OutputDir <> '' then begin
+        H := FindFirstFile(PChar(OutputDir + OutputBaseFilename + '-*.bin'), FindData);
+        if H <> INVALID_HANDLE_VALUE then begin
+          try
+            repeat
+              if FindData.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = 0 then begin
+                N := FindData.cFileName;
+                if PathStartsWith(N, OutputBaseFilename) then begin
+                  I := Length(OutputBaseFilename) + 1;
+                  if (I <= Length(N)) and (N[I] = '-') then begin
                     Inc(I);
-                  if CompareText(Copy(N, I, Maxint), '.bin') = 0 then
-                    DelFile(N);
+                    HasNumbers := False;
+                    while (I <= Length(N)) and CharInSet(N[I], ['0'..'9']) do begin
+                      HasNumbers := True;
+                      Inc(I);
+                    end;
+                    if HasNumbers then begin
+                      if (I <= Length(N)) and CharInSet(UpCase(N[I]), ['A'..'Z']) then
+                        Inc(I);
+                      if CompareText(Copy(N, I, Maxint), '.bin') = 0 then
+                        DelFile(N);
+                    end;
+                  end;
                 end;
               end;
-            end;
+            until not FindNextFile(H, FindData);
+          finally
+            Windows.FindClose(H);
           end;
-        until not FindNextFile(H, FindData);
-      finally
-        Windows.FindClose(H);
+        end;
       end;
     end;
   end;
@@ -7785,6 +7813,13 @@ var
       end;
     end;
 
+  const
+    StatusFilesStoringOrCompressingVersionStrings: array [Boolean] of String = (
+     SCompilerStatusFilesStoringVersion,
+     SCompilerStatusFilesCompressingVersion);
+    StatusFilesStoringOrCompressingStrings: array [Boolean] of String = (
+     SCompilerStatusFilesStoring,
+     SCompilerStatusFilesCompressing);
   var
     CH: TCompressionHandler;
     ChunkCompressed: Boolean;
@@ -7823,12 +7858,12 @@ var
       for I := 0 to FileLocationEntries.Count-1 do begin
         FL := FileLocationEntries[I];
         if foVersionInfoValid in FL.Flags then
-          AddStatus(Format(SCompilerStatusFilesCompressingVersion,
+          AddStatus(Format(StatusFilesStoringOrCompressingVersionStrings[foChunkCompressed in FL.Flags],
             [FileLocationEntryFilenames[I],
              LongRec(FL.FileVersionMS).Hi, LongRec(FL.FileVersionMS).Lo,
              LongRec(FL.FileVersionLS).Hi, LongRec(FL.FileVersionLS).Lo]))
         else
-          AddStatus(Format(SCompilerStatusFilesCompressing,
+          AddStatus(Format(StatusFilesStoringOrCompressingStrings[foChunkCompressed in FL.Flags],
             [FileLocationEntryFilenames[I]]));
         CallIdleProc;
 
@@ -7995,7 +8030,7 @@ var
       end;
 
       try
-        Sign(TSignTool(SignToolList[SignToolIndex]).Command, SignToolParams, Filename);
+        Sign(TSignTool(SignToolList[SignToolIndex]).Command, SignToolParams, Filename, SignToolRetryCount);
         if not InternalSignSetupE32(Filename, UnsignedFile, UnsignedFileSize,
            SCompilerSignedFileContentsMismatch) then
           AbortCompile(SCompilerSignToolSucceededButNoSignature);
@@ -8037,7 +8072,6 @@ var
   var
     TempFilename, E32Filename, ConvertFilename: String;
   begin
-    AddStatus(SCompilerStatusPreparingSetupExe);
     TempFilename := '';
     try
       E32Filename := CompilerDir + 'SETUP.E32';
@@ -8214,6 +8248,8 @@ begin
 
     { Initialize defaults }
     OriginalSourceDir := AddBackslash(PathExpand(SourceDir));
+    if not FixedOutput then
+      Output := True;
     if not FixedOutputDir then
       OutputDir := 'Output';
     if not FixedOutputBaseFilename then
@@ -8257,6 +8293,7 @@ begin
     WizardSmallImageFile := 'compiler:WIZMODERNSMALLIMAGE.BMP';
     DefaultDialogFontName := 'Tahoma';
     SignTool := '';
+    SignToolRetryCount := 2;
     SetupHeader.CloseApplicationsFilter := '*.exe,*.dll,*.chm';
 
     { Read [Setup] section }
@@ -8409,6 +8446,20 @@ begin
     CheckCheckOrInstall('CreateUninstallRegKey', SetupHeader.CreateUninstallRegKey, cikDirectiveCheck);
     LineNumber := SetupDirectiveLines[ssUninstallable];
     CheckCheckOrInstall('Uninstallable', SetupHeader.Uninstallable, cikDirectiveCheck);
+    if Output then begin
+      if OutputDir = '' then begin
+        LineNumber := SetupDirectiveLines[ssOutput];
+        AbortCompileOnLineFmt(SCompilerEntryInvalid2, ['Setup', 'OutputDir']);
+      end;
+      if OutputBaseFileName = '' then begin
+        LineNumber := SetupDirectiveLines[ssOutputBaseFileName];
+        AbortCompileOnLineFmt(SCompilerEntryInvalid2, ['Setup', 'OutputBaseFileName']);
+      end;
+      if (SetupDirectiveLines[ssOutputManifestfile] <> 0) and (OutputManifestFile = '') then begin
+        LineNumber := SetupDirectiveLines[ssOutputManifestFile];
+        AbortCompileOnLineFmt(SCompilerEntryInvalid2, ['Setup', 'OutputManifestFile']);
+      end;
+    end;
 
     LineNumber := 0;
 
@@ -8464,7 +8515,11 @@ begin
     LineNumber := 0;
 
     { Prepare Setup executable & signed uninstaller data }
-    PrepareSetupE32(SetupE32);
+    if Output then begin
+      AddStatus(SCompilerStatusPreparingSetupExe);
+      PrepareSetupE32(SetupE32);
+    end else
+      AddStatus(SCompilerStatusSkippingPreparingSetupExe);
 
     { Read languages:
 
@@ -8669,141 +8724,147 @@ begin
     CompileCode;
     CallIdleProc;
 
-    { Clear any existing setup* files out of the output directory first }
+    { Clear any existing setup* files out of the output directory first (even
+      if output is disabled. }
     EmptyOutputDir(True);
     if OutputManifestFile <> '' then
       DeleteFile(PrependDirName(OutputManifestFile, OutputDir));
 
     { Create setup files }
-    AddStatus(SCompilerStatusCreateSetupFiles);
-    ExeFilename := OutputDir + OutputBaseFilename + '.exe';
-    try
-      if not UseSetupLdr then begin
-        SetupFile := TFile.Create(ExeFilename, fdCreateAlways, faWrite, fsNone);
-        try
-          SetupFile.WriteBuffer(SetupE32.Memory^, SetupE32.Size.Lo);
-          SizeOfExe := SetupFile.Size.Lo;
-        finally
-          SetupFile.Free;
-        end;
-        CallIdleProc;
+    if Output then begin
+      AddStatus(SCompilerStatusCreateSetupFiles);
+      ExeFilename := OutputDir + OutputBaseFilename + '.exe';
+      try
+        if not UseSetupLdr then begin
+          SetupFile := TFile.Create(ExeFilename, fdCreateAlways, faWrite, fsNone);
+          try
+            SetupFile.WriteBuffer(SetupE32.Memory^, SetupE32.Size.Lo);
+            SizeOfExe := SetupFile.Size.Lo;
+          finally
+            SetupFile.Free;
+          end;
+          CallIdleProc;
 
-        if not DiskSpanning then begin
-          { Create SETUP-0.BIN and SETUP-1.BIN }
-          CompressFiles('', 0);
-          CreateSetup0File;
-        end
-        else begin
-          { Create SETUP-0.BIN and SETUP-*.BIN }
-          SizeOfHeaders := CreateSetup0File;
-          CompressFiles('', RoundToNearestClusterSize(SizeOfExe) +
-            RoundToNearestClusterSize(SizeOfHeaders) +
-            RoundToNearestClusterSize(ReserveBytes));
-          { CompressFiles modifies setup header data, so go back and
-            rewrite it }
-          if CreateSetup0File <> SizeOfHeaders then
-            { Make sure new and old size match. No reason why they
-              shouldn't but check just in case }
-            AbortCompile(SCompilerSetup0Mismatch);
-        end;
-      end
-      else begin
-        CopyFileOrAbort(CompilerDir + 'SETUPLDR.E32', ExeFilename);
-        { if there was a read-only attribute, remove it }
-        SetFileAttributes(PChar(ExeFilename), FILE_ATTRIBUTE_ARCHIVE);
-        if SetupIconFilename <> '' then begin
-          { update icons }
-          AddStatus(Format(SCompilerStatusUpdatingIcons, ['SETUP.EXE']));
-          LineNumber := SetupDirectiveLines[ssSetupIconFile];
-          UpdateIcons(ExeFilename, PrependSourceDirName(SetupIconFilename));
-          LineNumber := 0;
-        end;
-        SetupFile := TFile.Create(ExeFilename, fdOpenExisting, faReadWrite, fsNone);
-        try
-          UpdateSetupPEHeaderFields(SetupFile, TerminalServicesAware);
-          SizeOfExe := SetupFile.Size.Lo;
-        finally
-          SetupFile.Free;
-        end;
-        CallIdleProc;
-
-        { When disk spanning isn't used, place the compressed files inside
-          SETUP.EXE }
-        if not DiskSpanning then
-          CompressFiles(ExeFilename, 0);
-
-        ExeFile := TFile.Create(ExeFilename, fdOpenExisting, faReadWrite, fsNone);
-        try
-          ExeFile.SeekToEnd;
-
-          { Move the data from SETUP.E?? into the SETUP.EXE, and write
-            header data }
-          FillChar(SetupLdrOffsetTable, SizeOf(SetupLdrOffsetTable), 0);
-          SetupLdrOffsetTable.ID := SetupLdrOffsetTableID;
-          SetupLdrOffsetTable.Version := SetupLdrOffsetTableVersion;
-          SetupLdrOffsetTable.Offset0 := ExeFile.Position.Lo;
-          SizeOfHeaders := WriteSetup0(ExeFile);
-          SetupLdrOffsetTable.OffsetEXE := ExeFile.Position.Lo;
-          CompressSetupE32(SetupE32, ExeFile, SetupLdrOffsetTable.UncompressedSizeEXE,
-            SetupLdrOffsetTable.CRCEXE);
-          SetupLdrOffsetTable.TotalSize := ExeFile.Size.Lo;
-          if DiskSpanning then begin
-            SetupLdrOffsetTable.Offset1 := 0;
-            { Compress the files in SETUP-*.BIN after we know the size of
-              SETUP.EXE }
-            CompressFiles('',
-              RoundToNearestClusterSize(SetupLdrOffsetTable.TotalSize) +
+          if not DiskSpanning then begin
+            { Create SETUP-0.BIN and SETUP-1.BIN }
+            CompressFiles('', 0);
+            CreateSetup0File;
+          end
+          else begin
+            { Create SETUP-0.BIN and SETUP-*.BIN }
+            SizeOfHeaders := CreateSetup0File;
+            CompressFiles('', RoundToNearestClusterSize(SizeOfExe) +
+              RoundToNearestClusterSize(SizeOfHeaders) +
               RoundToNearestClusterSize(ReserveBytes));
             { CompressFiles modifies setup header data, so go back and
               rewrite it }
-            ExeFile.Seek(SetupLdrOffsetTable.Offset0);
-            if WriteSetup0(ExeFile) <> SizeOfHeaders then
+            if CreateSetup0File <> SizeOfHeaders then
               { Make sure new and old size match. No reason why they
                 shouldn't but check just in case }
               AbortCompile(SCompilerSetup0Mismatch);
-          end
-          else
-            SetupLdrOffsetTable.Offset1 := SizeOfExe;
-          SetupLdrOffsetTable.TableCRC := GetCRC32(SetupLdrOffsetTable,
-            SizeOf(SetupLdrOffsetTable) - SizeOf(SetupLdrOffsetTable.TableCRC));
+          end;
+        end
+        else begin
+          CopyFileOrAbort(CompilerDir + 'SETUPLDR.E32', ExeFilename);
+          { if there was a read-only attribute, remove it }
+          SetFileAttributes(PChar(ExeFilename), FILE_ATTRIBUTE_ARCHIVE);
+          if SetupIconFilename <> '' then begin
+            { update icons }
+            AddStatus(Format(SCompilerStatusUpdatingIcons, ['SETUP.EXE']));
+            LineNumber := SetupDirectiveLines[ssSetupIconFile];
+            UpdateIcons(ExeFilename, PrependSourceDirName(SetupIconFilename));
+            LineNumber := 0;
+          end;
+          SetupFile := TFile.Create(ExeFilename, fdOpenExisting, faReadWrite, fsNone);
+          try
+            UpdateSetupPEHeaderFields(SetupFile, TerminalServicesAware);
+            SizeOfExe := SetupFile.Size.Lo;
+          finally
+            SetupFile.Free;
+          end;
+          CallIdleProc;
 
-          { Write SetupLdrOffsetTable to SETUP.EXE }
-          if SeekToResourceData(ExeFile, Cardinal(RT_RCDATA), SetupLdrOffsetTableResID) <> SizeOf(SetupLdrOffsetTable) then
-            AbortCompile('Wrong offset table resource size');
-          ExeFile.WriteBuffer(SetupLdrOffsetTable, SizeOf(SetupLdrOffsetTable));
+          { When disk spanning isn't used, place the compressed files inside
+            SETUP.EXE }
+          if not DiskSpanning then
+            CompressFiles(ExeFilename, 0);
 
-          { Update version info }
-          AddStatus(SCompilerStatusUpdatingVersionInfo);
-          UpdateVersionInfo(ExeFile, VersionInfoVersion, VersionInfoProductVersion, VersionInfoCompany,
-            VersionInfoDescription, VersionInfoTextVersion,
-            VersionInfoCopyright, VersionInfoProductName, VersionInfoProductTextVersion);
+          ExeFile := TFile.Create(ExeFilename, fdOpenExisting, faReadWrite, fsNone);
+          try
+            ExeFile.SeekToEnd;
 
-          { For some reason, on Win95 the date/time of the EXE sometimes
-            doesn't get updated after it's been written to so it has to
-            manually set it. (I don't get it!!) }
-          UpdateTimeStamp(ExeFile.Handle);
-        finally
-          ExeFile.Free;
+            { Move the data from SETUP.E?? into the SETUP.EXE, and write
+              header data }
+            FillChar(SetupLdrOffsetTable, SizeOf(SetupLdrOffsetTable), 0);
+            SetupLdrOffsetTable.ID := SetupLdrOffsetTableID;
+            SetupLdrOffsetTable.Version := SetupLdrOffsetTableVersion;
+            SetupLdrOffsetTable.Offset0 := ExeFile.Position.Lo;
+            SizeOfHeaders := WriteSetup0(ExeFile);
+            SetupLdrOffsetTable.OffsetEXE := ExeFile.Position.Lo;
+            CompressSetupE32(SetupE32, ExeFile, SetupLdrOffsetTable.UncompressedSizeEXE,
+              SetupLdrOffsetTable.CRCEXE);
+            SetupLdrOffsetTable.TotalSize := ExeFile.Size.Lo;
+            if DiskSpanning then begin
+              SetupLdrOffsetTable.Offset1 := 0;
+              { Compress the files in SETUP-*.BIN after we know the size of
+                SETUP.EXE }
+              CompressFiles('',
+                RoundToNearestClusterSize(SetupLdrOffsetTable.TotalSize) +
+                RoundToNearestClusterSize(ReserveBytes));
+              { CompressFiles modifies setup header data, so go back and
+                rewrite it }
+              ExeFile.Seek(SetupLdrOffsetTable.Offset0);
+              if WriteSetup0(ExeFile) <> SizeOfHeaders then
+                { Make sure new and old size match. No reason why they
+                  shouldn't but check just in case }
+                AbortCompile(SCompilerSetup0Mismatch);
+            end
+            else
+              SetupLdrOffsetTable.Offset1 := SizeOfExe;
+            SetupLdrOffsetTable.TableCRC := GetCRC32(SetupLdrOffsetTable,
+              SizeOf(SetupLdrOffsetTable) - SizeOf(SetupLdrOffsetTable.TableCRC));
+
+            { Write SetupLdrOffsetTable to SETUP.EXE }
+            if SeekToResourceData(ExeFile, Cardinal(RT_RCDATA), SetupLdrOffsetTableResID) <> SizeOf(SetupLdrOffsetTable) then
+              AbortCompile('Wrong offset table resource size');
+            ExeFile.WriteBuffer(SetupLdrOffsetTable, SizeOf(SetupLdrOffsetTable));
+
+            { Update version info }
+            AddStatus(SCompilerStatusUpdatingVersionInfo);
+            UpdateVersionInfo(ExeFile, VersionInfoVersion, VersionInfoProductVersion, VersionInfoCompany,
+              VersionInfoDescription, VersionInfoTextVersion,
+              VersionInfoCopyright, VersionInfoProductName, VersionInfoProductTextVersion);
+
+            { For some reason, on Win95 the date/time of the EXE sometimes
+              doesn't get updated after it's been written to so it has to
+              manually set it. (I don't get it!!) }
+            UpdateTimeStamp(ExeFile.Handle);
+          finally
+            ExeFile.Free;
+          end;
         end;
-      end;
 
-      { Sign }
-      SignToolIndex := FindSignToolIndexByName(SignTool);
-      if SignToolIndex <> -1 then begin
-        AddStatus(SCompilerStatusSigningSetup);
-        Sign(TSignTool(SignToolList[SignToolIndex]).Command, SignToolParams, ExeFilename);
+        { Sign }
+        SignToolIndex := FindSignToolIndexByName(SignTool);
+        if SignToolIndex <> -1 then begin
+          AddStatus(SCompilerStatusSigningSetup);
+          Sign(TSignTool(SignToolList[SignToolIndex]).Command, SignToolParams, ExeFilename, SignToolRetryCount);
+        end;
+      except
+        EmptyOutputDir(False);
+        raise;
       end;
-    except
-      EmptyOutputDir(False);
-      raise;
-    end;
-    CallIdleProc;
-
-    { Create manifest file }
-    if OutputManifestFile <> '' then begin
-      AddStatus(SCompilerStatusCreateManifestFile);
-      CreateManifestFile;
       CallIdleProc;
+
+      { Create manifest file }
+      if OutputManifestFile <> '' then begin
+        AddStatus(SCompilerStatusCreateManifestFile);
+        CreateManifestFile;
+        CallIdleProc;
+      end;
+    end else begin
+      AddStatus(SCompilerStatusSkippingCreateSetupFiles);
+      ExeFilename := '';
     end;
 
     { Finalize debug info }
@@ -8813,8 +8874,8 @@ begin
     AddStatus('');
     for I := 0 to WarningsList.Count-1 do
       AddStatus(SCompilerStatusWarning + WarningsList[I]);
-    asm jmp @1; db 0,'Inno Setup Compiler, Copyright (C) 1997-2010 Jordan Russell, '
-                  db 'Portions Copyright (C) 2000-2010 Martijn Laan',0; @1: end;
+    asm jmp @1; db 0,'Inno Setup Compiler, Copyright (C) 1997-2014 Jordan Russell, '
+                  db 'Portions Copyright (C) 2000-2014 Martijn Laan',0; @1: end;
     { Note: Removing or modifying the copyright text is a violation of the
       Inno Setup license agreement; see LICENSE.TXT. }
   finally
@@ -8887,7 +8948,16 @@ begin
     if (Params.Size <> SizeOf(TCompileScriptParams)) and Assigned(Params.Options) then begin
       P := Params.Options;
       while P^ <> #0 do begin
-        if StrLIComp(P, 'OutputDir=', Length('OutputDir=')) = 0 then begin
+        if StrLIComp(P, 'Output=', Length('Output=')) = 0 then begin
+          Inc(P, Length('Output='));
+          if TryStrToBoolean(P, SetupCompiler.Output) then
+            SetupCompiler.FixedOutput := True
+          else begin
+            { Bad option }
+            Result := isceInvalidParam;
+          end;
+        end
+        else if StrLIComp(P, 'OutputDir=', Length('OutputDir=')) = 0 then begin
           Inc(P, Length('OutputDir='));
           SetupCompiler.OutputDir := P;
           SetupCompiler.FixedOutputDir := True;

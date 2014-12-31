@@ -808,6 +808,15 @@ begin
       Stack.SetBool(PStart, True);
     end else
       Stack.SetBool(PStart, False);
+{$IFNDEF PS_NOINT64}
+  end else if Proc.Name = 'GETSPACEONDISK64' then begin
+    if GetSpaceOnDisk(ScriptFuncDisableFsRedir, Stack.GetString(PStart-1), FreeBytes, TotalBytes) then begin
+      Stack.SetInt64(PStart-2, Int64(FreeBytes.Hi) shl 32 + FreeBytes.Lo);
+      Stack.SetInt64(PStart-3, Int64(TotalBytes.Hi) shl 32 + TotalBytes.Lo);
+      Stack.SetBool(PStart, True);
+    end else
+      Stack.SetBool(PStart, False);
+{$ENDIF}
   end else if Proc.Name = 'GETUSERNAMESTRING' then begin
     Stack.SetString(PStart, GetUserNameString());
   end else if Proc.Name = 'INCREMENTSHAREDCOUNT' then begin
@@ -1697,10 +1706,17 @@ begin
   end else if Proc.Name = 'CURRENTFILENAME' then begin
     if IsUninstaller then
       NoUninstallFuncError(Proc.Name);
-    if CheckOrInstallCurrentFileName <> '' then
-      Stack.SetString(PStart, CheckOrInstallCurrentFileName)
+    if CheckOrInstallCurrentFilename <> '' then
+      Stack.SetString(PStart, CheckOrInstallCurrentFilename)
     else
-      InternalError('An attempt was made to call the "CurrentFileName" function from outside a "Check", "BeforeInstall" or "AfterInstall" event function belonging to a "[Files]" entry');
+      InternalError('An attempt was made to call the "CurrentFilename" function from outside a "Check", "BeforeInstall" or "AfterInstall" event function belonging to a "[Files]" entry');
+  end else if Proc.Name = 'CURRENTSOURCEFILENAME' then begin
+    if IsUninstaller then
+      NoUninstallFuncError(Proc.Name);
+    if CheckOrInstallCurrentSourceFilename <> '' then
+      Stack.SetString(PStart, CheckOrInstallCurrentSourceFilename)
+    else
+      InternalError('An attempt was made to call the "CurrentSourceFilename" function from outside a "Check", "BeforeInstall" or "AfterInstall" event function belonging to a "[Files]" entry with flag "external"');
   end else if Proc.Name = 'CASTSTRINGTOINTEGER' then begin
     Stack.SetInt(PStart, Integer(PChar(Stack.GetString(PStart-1))));
   end else if Proc.Name = 'CASTINTEGERTOSTRING' then begin

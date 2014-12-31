@@ -46,7 +46,7 @@ type
 
   TInnoSetupStylerStyle = (stDefault, stCompilerDirective,
     stComment, stSection, stSymbol, stKeyword, stParameterValue,
-    stEventFunction, stConstant, stMessageArg);
+    stEventFunction, stConstant, stMessageArg, stPascalString, stPascalNumber);
 
   TInnoSetupStyler = class(TScintCustomStyler)
   private
@@ -176,6 +176,7 @@ type
     ssMessagesFile,
     ssMinVersion,
     ssOnlyBelowVersion,
+    ssOutput,
     ssOutputBaseFilename,
     ssOutputDir,
     ssOutputManifestFile,
@@ -193,6 +194,7 @@ type
     ssSignedUninstaller,
     ssSignedUninstallerDir,
     ssSignTool,
+    ssSignToolRetryCount,
     ssSlicesPerDisk,
     ssSolidCompression,
     ssSourceDir,
@@ -410,9 +412,7 @@ const
     (Name: 'OnlyBelowVersion'));
 
 const
-  stPascalNumber = stDefault;
   stPascalReservedWord = stKeyword;
-  stPascalString = stDefault;
 
   inSquiggly = 0;
   inPendingSquiggly = 1;
@@ -660,6 +660,7 @@ begin
       stEventFunction: Attributes.FontStyle := [fsBold];
       stConstant: Attributes.ForeColor := $C00080;
       stMessageArg: Attributes.ForeColor := $FF8000;
+      stPascalString, stPascalNumber: Attributes.ForeColor := clMaroon;
     end;
   end
   else begin
@@ -703,7 +704,7 @@ const
     'program', 'record', 'repeat', 'set', 'shl', 'shr',
     'then', 'to', 'try', 'type', 'until', 'var', 'while',
     'with', 'xor');
-  EventFunctions: array[0..21] of TScintRawString = (
+  EventFunctions: array[0..22] of TScintRawString = (
     'InitializeSetup', 'DeinitializeSetup', 'CurStepChanged',
     'NextButtonClick', 'BackButtonClick', 'ShouldSkipPage',
     'CurPageChanged', 'CheckPassword', 'NeedRestart',
@@ -712,7 +713,8 @@ const
     'InitializeUninstall', 'DeinitializeUninstall',
     'CurUninstallStepChanged', 'UninstallNeedRestart',
     'CancelButtonClick', 'InitializeUninstallProgressForm',
-    'PrepareToInstall', 'RegisterExtraCloseApplicationsResources');
+    'PrepareToInstall', 'RegisterExtraCloseApplicationsResources',
+    'CurInstallProgressChanged');
 var
   S: TScintRawString;
   I: Integer;

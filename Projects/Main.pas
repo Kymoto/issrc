@@ -2,7 +2,7 @@ unit Main;
 
 {
   Inno Setup
-  Copyright (C) 1997-2013 Jordan Russell
+  Copyright (C) 1997-2014 Jordan Russell
   Portions by Martijn Laan
   For conditions of distribution and use, see LICENSE.TXT.
 
@@ -145,7 +145,7 @@ var
   NeedToAbortInstall: Boolean;
 
   { Check/BeforeInstall/AfterInstall 'contants' }
-  CheckOrInstallCurrentFileName: String;
+  CheckOrInstallCurrentFilename, CheckOrInstallCurrentSourceFilename: String;
 
   { RestartManager API state.
     Note: the handle and key might change while running, see TWizardForm.QueryRestartManager. }
@@ -420,9 +420,11 @@ end;
 
 procedure NotifyBeforeInstallFileEntry(const FileEntry: PSetupFileEntry);
 begin
-  CheckOrInstallCurrentFileName := FileEntry.DestName;
+  CheckOrInstallCurrentFilename := FileEntry.DestName;
+  CheckOrInstallCurrentSourceFilename := FileEntry.SourceFilename;
   NotifyInstallEntry(FileEntry.BeforeInstall);
-  CheckOrInstallCurrentFileName := '';
+  CheckOrInstallCurrentFilename := '';
+  CheckOrInstallCurrentSourceFilename := '';
 end;
 
 procedure NotifyAfterInstallEntry(const AfterInstall: String);
@@ -432,9 +434,11 @@ end;
 
 procedure NotifyAfterInstallFileEntry(const FileEntry: PSetupFileEntry);
 begin
-  CheckOrInstallCurrentFileName := FileEntry.DestName;
+  CheckOrInstallCurrentFilename := FileEntry.DestName;
+  CheckOrInstallCurrentSourceFilename := FileEntry.SourceFilename;
   NotifyInstallEntry(FileEntry.AfterInstall);
-  CheckOrInstallCurrentFileName := '';
+  CheckOrInstallCurrentFilename := '';
+  CheckOrInstallCurrentSourceFilename := '';
 end;
 
 class function TDummyClass.EvalComponentOrTaskIdentifier(Sender: TSimpleExpression;
@@ -558,12 +562,14 @@ begin
     Result := False;
     Exit;
   end;
-  CheckOrInstallCurrentFileName := FileEntry.DestName;
+  CheckOrInstallCurrentFilename := FileEntry.DestName;
+  CheckOrInstallCurrentSourceFilename := FileEntry.SourceFilename;
   if IgnoreCheck then
     Result := ShouldProcessEntry(WizardComponents, WizardTasks, FileEntry.Components, FileEntry.Tasks, FileEntry.Languages, '')
   else
     Result := ShouldProcessEntry(WizardComponents, WizardTasks, FileEntry.Components, FileEntry.Tasks, FileEntry.Languages, FileEntry.Check);
-  CheckOrInstallCurrentFileName := '';
+  CheckOrInstallCurrentFilename := '';
+  CheckOrInstallCurrentSourceFilename := '';
 end;
 
 function ShouldProcessRunEntry(const WizardComponents, WizardTasks: TStringList;
@@ -3036,7 +3042,22 @@ begin
     SetupFile.Free;
   end;
 
-  { Show "Select Language" dialog if necessary }
+  { Set Is64BitInstallMode if we're on Win64 and the processor architecture is
+    one on which a "64-bit mode" install should be performed }
+  if ProcessorArchitecture in SetupHeader.ArchitecturesInstallIn64BitMode then begin
+    if not IsWin64 then begin
+      { A 64-bit processor was detected and 64-bit install mode was requested,
+        but IsWin64 is False, indicating required WOW64 APIs are not present }
+      AbortInitFmt1(msgMissingWOW64APIs, '1');
+    end;
+    Initialize64BitInstallMode(True);
+  end
+  else
+    Initialize64BitInstallMode(False);
+
+  { Show "Select Language" dialog if necessary - requires "64-bit mode" to be
+    initialized else it might query the previous language from the wrong registry
+    view }
   if ShowLanguageDialog and (Entries[seLanguage].Count > 1) and
      not InitSilent and not InitVerySilent then begin
     if not AskForLanguage then
@@ -3056,19 +3077,6 @@ begin
   else
     AbortInit(msgWindowsVersionNotSupported);
   end;
-
-  { Set Is64BitInstallMode if we're on Win64 and the processor architecture is
-    one on which a "64-bit mode" install should be performed }
-  if ProcessorArchitecture in SetupHeader.ArchitecturesInstallIn64BitMode then begin
-    if not IsWin64 then begin
-      { A 64-bit processor was detected and 64-bit install mode was requested,
-        but IsWin64 is False, indicating required WOW64 APIs are not present }
-      AbortInitFmt1(msgMissingWOW64APIs, '1');
-    end;
-    Initialize64BitInstallMode(True);
-  end
-  else
-    Initialize64BitInstallMode(False);
 
   { Check if the user lacks the required privileges }
   case SetupHeader.PrivilegesRequired of
@@ -3576,8 +3584,8 @@ begin
   S := SetupTitle + ' version ' + SetupVersion + SNewLine;
   if SetupTitle <> 'Inno Setup' then
     S := S + (SNewLine + 'Based on Inno Setup' + SNewLine);
-  S := S + ('Copyright (C) 1997-2013 Jordan Russell' + SNewLine +
-    'Portions Copyright (C) 2000-2013 Martijn Laan' + SNewLine +
+  S := S + ('Copyright (C) 1997-2014 Jordan Russell' + SNewLine +
+    'Portions Copyright (C) 2000-2014 Martijn Laan' + SNewLine +
     'All rights reserved.' + SNewLine2 +
     'Inno Setup home page:' + SNewLine +
     'http://www.innosetup.com/');

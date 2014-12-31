@@ -1,4 +1,4 @@
-; *** Inno Setup version  5.5.0+ Arabic messages ***
+; *** Inno Setup version 5.5.3+ Arabic messages ***
 ;
 ; Translated by Awadh Al-Ghaamdi (awadh_al_ghaamdi@hotmail.com)
 ;   http://www.jrsoftware.org/files/istrans/
@@ -207,6 +207,7 @@ ApplicationsFound=ÇáÊØÈíŞÇÊ ÇáÊÇáíÉ ÊÓÊÎÏã ãáİÇÊ ÈÍÇÌÉ Åáì ÊÍÏíËåÇ ÈæÇÓØÉ ÈÑäÇãÌ
 ApplicationsFound2=ÇáÊØÈíŞÇÊ ÇáÊÇáíÉ ÊÓÊÎÏã ãáİÇÊ ÈÍÇÌÉ Åáì ÊÍÏíËåÇ ÈæÇÓØÉ ÈÑäÇãÌ ÇáÊËÈíÊ. íÓÊÍÓä ÇáÓãÇÍ áÈÑäÇãÌ ÇáÊËÈíÊ ÈÅÛáÇŞ åĞå ÇáÊØÈíŞÇÊ ÊáŞÇÆíÇ æ ÈÚÏ ÇßÊãÇá ÚãáíÉ ÇáÊËÈíÊ¡ ÓíÍÇæá ÈÑäÇãÌ ÇáÊËÈíÊ ÅÚÇÏÉ ÊÔÛíá ÇáÊØÈíŞÇÊ
 CloseApplications=Å&ÛáÇŞ ÇáÊØÈíŞÇÊ ÊáŞÇÆíÇ
 DontCloseApplications=&ÛÏã ÅÛáÇŞ ÇáÊØÈíŞÇÊ
+ErrorCloseApplications=áã íÊãßä ÈÑäÇãÌ ÇáÅÚÏÇÏ ÊáŞÇÆíÇ ãä ÅÛáÇŞ ßÇİÉ ÇáÊØÈíŞÇÊ. ãä ÇáãÓÊÍÓä Ãä ÊŞæã ÃäÊ ÈÅÛáÇŞ ßÇİÉ ÇáÊØÈíŞÇÊ ÇáÊí ÊÓÊÎÏã ÇáãáİÇÊ ÇáãØáæÈ ÊÍÏíËåÇ ÈæÇÓØÉ ÈÑäÇãÌ ÇáÅÚÏÇÏ ŞÈá ÇáãÊÇÈÚÉ
 
 ; *** "Installing" wizard page
 WizardInstalling=ÊÊã ÚãáíÉ ÇáÊËÈíÊ
@@ -225,7 +226,7 @@ NoRadio=&áÇ ¡ ÓÃÚíÏ ÊÔÛíá ÇáßãÈíæÊÑ ÈäİÓí áÇÍŞÇ
 ; used for example as 'Run MyProg.exe'
 RunEntryExec=ÊÔÛíá %1
 ; used for example as 'View Readme.txt'
-RunEntryShellExec=ÇÚÑÖ %1
+RunEntryShellExec=ÚÑÖ %1
 
 ; *** "Setup Needs the Next Disk" stuff
 ChangeDiskTitle=ÈÑäÇãÌ ÇáÊËÈíÊ íÍÊÇÌ ÇáŞÑÕ ÇáÊÇáí

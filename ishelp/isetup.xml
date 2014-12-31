@@ -3,7 +3,7 @@
 
 <!--
   Inno Setup
-  Copyright (C) 1997-2013 Jordan Russell
+  Copyright (C) 1997-2014 Jordan Russell
   Portions by Martijn Laan
   For conditions of distribution and use, see LICENSE.TXT.
 -->
@@ -85,9 +85,9 @@
 <body>
 
 <p>
-<b>Inno Setup version 5.5.3</b><br/>
-<b>Copyright &copy; 1997-2013 Jordan Russell. All rights reserved.</b><br/>
-<b>Portions Copyright &copy; 2000-2013 Martijn Laan. All rights reserved.</b><br/>
+<b>Inno Setup version 5.5.5</b><br/>
+<b>Copyright &copy; 1997-2014 Jordan Russell. All rights reserved.</b><br/>
+<b>Portions Copyright &copy; 2000-2014 Martijn Laan. All rights reserved.</b><br/>
 <extlink href="http://www.jrsoftware.org/">Inno Setup home page</extlink>
 </p>
 
@@ -178,7 +178,7 @@ Includes integrated support for "deflate", bzip2, and 7-Zip LZMA/LZMA2 file <lin
 
 <p>To give you an idea of how this all works, start the Setup Compiler, click <i>File | Open</i>, and select one of the script files in the Examples subdirectory located under the Inno Setup directory. (It may be helpful to use the sample scripts as a template for your own scripts.)</p>
 
-<p><br/><b>See also</b><br/>
+<p><br/><b>See also:</b><br/>
 <link topic="scriptformatoverview">Script Format Overview</link>
 </p>
 
@@ -234,7 +234,7 @@ Source: "MYPROG.EXE"; DestDir: "{app}"
 
 <p>By default, scripts use ISPP if available, and .isl files use the built-in preprocessor.</p>
 
-<p><br/><b>See also</b><br/>
+<p><br/><b>See also:</b><br/>
 <link topic="params">Parameters in Sections</link><br/>
 <link topic="consts">Constants</link><br/>
 <link topic="commonparams">Common Parameters</link><br/>
@@ -902,6 +902,7 @@ DefaultGroupName=My Program
 <li><link topic="setup_lzmanumfastbytes">LZMANumFastBytes</link></li>
 <li><link topic="setup_lzmauseseparateprocess">LZMAUseSeparateProcess</link></li>
 <li><link topic="setup_mergeduplicatefiles">MergeDuplicateFiles</link></li>
+<li><link topic="setup_output">Output</link></li>
 <li><link topic="setup_outputbasefilename">OutputBaseFilename</link></li>
 <li><link topic="setup_outputdir">OutputDir</link></li>
 <li><link topic="setup_outputmanifestfile">OutputManifestFile</link></li>
@@ -909,6 +910,7 @@ DefaultGroupName=My Program
 <li><link topic="setup_signeduninstaller">SignedUninstaller</link></li>
 <li><link topic="setup_signeduninstallerdir">SignedUninstallerDir</link></li>
 <li><link topic="setup_signtool">SignTool</link></li>
+<li><link topic="setup_signtoolretrycount">SignToolRetryCount</link></li>
 <li><link topic="setup_slicesperdisk">SlicesPerDisk</link></li>
 <li><link topic="setup_solidcompression">SolidCompression</link></li>
 <li><link topic="setup_sourcedir">SourceDir</link></li>
@@ -1448,7 +1450,7 @@ Source: "Files\*"
 </param>
 
 <param name="DestDir" required="yes">
-<p>The directory where the file is to be installed on the user's system. The will almost always begin with one of the directory constants. If the specified path does not already exist on the user's system, it will be created automatically, and removed automatically during uninstallation if empty.</p>
+<p>The directory where the file is to be installed on the user's system. Will almost always begin with one of the directory constants. If the specified path does not already exist on the user's system, it will be created automatically, and removed automatically during uninstallation if empty.</p>
 <examples>
 <pre>
 DestDir: "{app}"
@@ -1669,10 +1671,10 @@ Instructs Setup to proceed to comparing time stamps if the file being installed 
 <p>When <link topic="setup_solidcompression">solid compression</link> is enabled, this flag instructs the compiler to finalize the current compression stream and begin a new one before compressing the file(s) matched by <tt>Source</tt>. This allows Setup to seek to the file instantly without having to decompress any preceding files first. May be useful in a large, multi-component installation if you find too much time is being spent decompressing files belonging to components that weren't selected.</p>
 </flag>
 <flag name="sortfilesbyextension">
-<p>This flag instructs the compiler to compress the found files sorted by extension befores it sorts by path name. This potentially decreases the size of Setup if <link topic="setup_solidcompression">solid compression</link> is also used.</p>
+<p>This flag instructs the compiler to compress the found files sorted by extension before it sorts by path name. This potentially decreases the size of Setup if <link topic="setup_solidcompression">solid compression</link> is also used.</p>
 </flag>
 <flag name="sortfilesbyname">
-<p>This flag instructs the compiler to compress the found files sorted by name befores it sorts by path name. This potentially decreases the size of Setup if <link topic="setup_solidcompression">solid compression</link> is also used. If <tt>sortfilesbyextension</tt> is also used, files are first sorted by extension.</p>
+<p>This flag instructs the compiler to compress the found files sorted by name before it sorts by path name. This potentially decreases the size of Setup if <link topic="setup_solidcompression">solid compression</link> is also used. If <tt>sortfilesbyextension</tt> is also used, files are first sorted by extension.</p>
 </flag>
 <flag name="touch">
 <p>This flag causes Setup to set the time/date stamp of the installed file(s) to that which is specified by the <link topic="setup_touchdate">TouchDate</link> and <link topic="setup_touchtime">TouchTime</link> [Setup] section directives.</p>
@@ -2141,6 +2143,9 @@ UninstallProgram=Uninstall %1
 LaunchProgram=Launch %1
 AssocFileExtension=&amp;Associate %1 with the %2 file extension
 AssocingFileExtension=Associating %1 with the %2 file extension...
+AutoStartProgramGroupDescription=Startup:
+AutoStartProgram=Automatically start %1
+AddonHostProgramNotFound=%1 could not be located in the folder you selected.%n%nDo you want to continue anyway?
 </precode>
 
 <p>You may use these predefined custom messages in your own script. An example which uses <tt>UninstallProgram</tt>:</p>
@@ -2600,7 +2605,7 @@ Type: files; Name: "{win}\MYPROG.INI"
 
 <param name="Name" required="yes">
 <p>Name of the file or directory to delete.</p>
-<p><b>NOTE:</b> Don't be tempted to use a wildcard here to delete all files in the {app} directory. I strongly recommend against doing this for two reasons. First, users usually don't appreciate having their data files they put in the application directory deleted without warning (they might only be uninstalling it because they want to move it to a different drive, for example). It's better to leave it up to the end users to manually remove them if they want. Also, if the user happened to install the program in the wrong directory by mistake (for example, C:\WINDOWS) and then went to uninstall it there could be disastrous consequences. So again, <b>DON'T DO THIS!</b></p>
+<p><b>NOTE:</b> Don't be tempted to use a wildcard here to delete all files in the {app} directory. Doing this is strongly recommend against for two reasons. First, users usually don't appreciate having their data files they put in the application directory deleted without warning (they might only be uninstalling it because they want to move it to a different drive, for example). It's better to leave it up to the end users to manually remove them if they want. Also, if the user happened to install the program in the wrong directory by mistake (for example, C:\WINDOWS) and then went to uninstall it there could be disastrous consequences. So again, <b>DON'T DO THIS!</b></p>
 <example>
 <pre>Name: "{win}\MYPROG.INI"</pre>
 </example>
@@ -2649,6 +2654,8 @@ Type: files; Name: "{win}\MYPROG.INI"
     <li>The new RemObjects PascalScript version used by the Unicode compiler supports Unicode, but not for its input source. This means it does use Unicode string types as said, but any literal Unicode characters in the script will be converted to ANSI. This doesn't mean you can't display Unicode strings: you can for example instead use encoded Unicode characters to build Unicode strings (like <tt>S := #$0100 + #$0101 + 'Aa';</tt>), or load the string from a file using <tt>LoadStringsFromFile</tt>, or use a <tt>{cm:...}</tt> constant.</li>
     <li>Some support functions had their prototype changed: some parameters of <tt>CreateOutputMsgMemoPage</tt>, <tt>RegQueryBinaryValue</tt>, <tt>RegWriteBinaryValue</tt>, <tt>OemToCharBuff</tt>, <tt>CharToOemBuff</tt>, <tt>LoadStringFromfile</tt>, <tt>SaveStringToFile</tt>, and <tt>GetMD5OfString</tt> are of type AnsiString now instead of String.</li>
     <li>Added new <tt>SaveStringsToUTF8File</tt>, and <tt>GetMD5OfUnicodeString</tt> support functions.</li>
+    <li>Added new 'Int64' type, supported by <tt>IntToStr</tt>. Also added new <tt>StrToInt64</tt>, <tt>StrToInt64Def</tt>, and <tt>GetSpaceOnDisk64</tt> support functions.</li>
+    <li>Added new <tt>TStringStream</tt> class.</li>
     <li>If you want to compile an existing script that imports ANSI Windows API calls with the Unicode compiler, either upgrade to the 'W' Unicode API call or change the parameters from 'String' or 'PChar' to 'AnsiString'. The 'AnsiString' approach will make your [Code] compatible with both the Unicode and the non Unicode version.</li>
     </ul>
   </li>
@@ -2973,10 +2980,10 @@ Filename: "{win}\MYPROG.INI"; Section: "InstallSettings"; Key: "InstallPath"; St
 
 <p>As shown in the example above, filenames that include spaces must be enclosed in quotes.</p>
 
-<p>Valid options are: "/O" to specify an output path (overriding any <tt>OutputDir</tt> setting in the script), "/F" to specify an output filename (overriding any <tt>OutputBaseFilename</tt> setting in the script), "/S" to specify a Sign Tool, "/Q" for quiet compile (print only error messages), and "/?" to show a help screen.</p>
+<p>Valid options are: "/O-" to disable output (overriding any <tt>Output</tt> setting in the script), "/O+" to enable output (overriding any <tt>Output</tt> setting in the script), "/O" to specify an output path (overriding any <tt>OutputDir</tt> setting in the script), "/F" to specify an output filename (overriding any <tt>OutputBaseFilename</tt> setting in the script), "/S" to specify a Sign Tool (any Sign Tools configured using the IDE will be specified automatically), "/Q[p]" for quiet compile (print only error messages, "p" will show progress info), and "/?" to show a help screen.</p>
 
 <indent>
-<example>iscc /Q /O"My Output" /F"MyProgram-1.0" /Sbyparam=$p "c:\isetup\samples\my script.iss"</example>
+<example>iscc /Qp /O"My Output" /F"MyProgram-1.0" /Sbyparam=$p "c:\isetup\samples\my script.iss"</example>
 </indent>
 
 <p>ISCC will return an exit code of 0 if the compile was successful, 1 if the command line parameters were invalid or an internal error occurred, or 2 if the compile failed.</p>
@@ -3057,7 +3064,7 @@ Filename: "{win}\MYPROG.INI"; Section: "InstallSettings"; Key: "InstallPath"; St
 
 <dt><b><a name="SUPPRESSMSGBOXES">/SUPPRESSMSGBOXES</a></b></dt>
 <dd>
-<p>Instructs Setup to suppress message boxes. Only has an effect when combined with '/SILENT' and '/VERYSILENT'.</p>
+<p>Instructs Setup to suppress message boxes. Only has an effect when combined with '/SILENT' or '/VERYSILENT'.</p>
 <p>The default response in situations where there's a choice is:</p>
 <ul appearance="compact">
 <li>Yes in a 'Keep newer file?' situation.</li>
@@ -3436,7 +3443,7 @@ Keep the default set of selected tasks, but deselect the "desktopicon" task:<br/
 
 <li>Igor Pavlov: Creator of the <extlink href="http://www.7-zip.org/sdk.html">LZMA</extlink> compression library that Inno Setup uses.</li>
 
-<li>?: Most of the disk spanning code (1.09). (Sorry, I somehow managed to lose your name!)</li>
+<li>?: Most of the disk spanning code (1.09). (Sorry, somehow your name was lost!)</li>
 
 <li>Vince Valenti: Most of the code for the "Window" <tt>[Setup]</tt> section directives (1.12.4).</li>
 
@@ -3446,7 +3453,7 @@ Keep the default set of selected tasks, but deselect the "desktopicon" task:<br/
 
 <li>Martijn Laan: Code for Rich Edit 2.0 &amp; URL detection support (1.3.13); silent uninstallation (1.3.25); system image list support in drive and directory lists (1.3.25); silent installation (2.0.0); <tt>[Types]</tt>, <tt>[Components]</tt> and <tt>[Tasks]</tt> sections (2.0.0); <tt>postinstall</tt> flag (2.0.0); <tt>[Code]</tt> section (4.0.0); Subcomponents and subtasks support (4.0.0); Many other features after 4.0.0.</li>
 
-<li>Alex Yackimoff: Portions of TNewCheckListBox (4.0.0).</li>
+<li>Alex Yackimoff: Portions of <link topic="scriptclasses" anchor="TNewCheckListBox">TNewCheckListBox</link> (4.0.0).</li>
 
 <li>Carlo Kok: <extlink href="http://www.remobjects.com/ps">RemObjects Pascal Script</extlink> (4.0.0).</li>
 
@@ -3456,15 +3463,13 @@ Keep the default set of selected tasks, but deselect the "desktopicon" task:<br/
 
 <li>Creators of <extlink href="http://www.scintilla.org/">Scintilla</extlink>: The syntax-highlighting editor used in the Compiler (5.4.0).</li>
 
-<li><extlink href="http://www.glyfx.com/">glyFX</extlink>: The Inno Setup logo, the compiler icon, the document icon, the Inno Setup installer wizard images and the images for the IDE's toolbar. 128x128 and 256x256 icon sizes by Motaz.</li>
+<li><extlink href="http://www.glyfx.com/">glyFX</extlink>: The Inno Setup logo, the compiler icon, the document icon, the Inno Setup installer wizard images and the images for the IDE's toolbar. 128x128 and 256x256 icon sizes by Motaz Alnuweiri.</li>
 
 <li>Zaher Dirkey: Initial work on improved right-to-left languages support.</li>
 
 <li>Evgeny Karpov of RemObjects Software: Initial work on Unicode support.</li>
 
 </ul>
-
-<p>If I have left anyone out, please don't hesitate to let me know.</p>
 
 </body>
 </topic>
@@ -3755,21 +3760,23 @@ Name: portablemode; Description: "Portable Mode"</pre></example>
 </setuptopic>
 
 <setuptopic directive="PrivilegesRequired">
-<setupvalid><tt>none</tt>, <tt>poweruser</tt>, <tt>admin</tt>, or <tt>lowest</tt></setupvalid>
+<setupvalid><tt>poweruser</tt>, <tt>admin</tt>, or <tt>lowest</tt></setupvalid>
 <setupdefault><tt>admin</tt></setupdefault>
 <body>
 <p>The effect of this directive depends on which version of Windows the user is running:</p>
 <p><b>On Windows Vista and later:</b></p>
 <p>This directive affects whether elevated rights are requested (via a User Account Control dialog) when the installation is started.</p>
 <p>When set to <tt>admin</tt> (the default) or <tt>poweruser</tt>, Setup will always run with administrative privileges. If Setup was started by an unprivileged user, Windows will ask for the password to an account that has administrative privileges, and Setup will then run under that account.</p>
-<p>When set to <tt>none</tt>, Setup will only run with administrative privileges if it was started by a member of the Administrators group. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p>
-<p>When set to <tt>lowest</tt>, Setup will not request to be run administrative privileges even if it was started by a member of the Administrators group. Additionally, the uninstall info root key will always be HKEY_CURRENT_USER, and the "common" forms of the Shell Folder constants are mapped to the "user" forms, even if administrative privileges are available. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p>
+<!-- <p>When set to <tt>none</tt>, Setup will only run with administrative privileges if it was started by a member of the Administrators group. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p> -->
+<p>When set to <tt>lowest</tt>, Setup will not request to be run with administrative privileges even if it was started by a member of the Administrators group. Additionally, the uninstall info root key will always be HKEY_CURRENT_USER, and the "common" forms of the Shell Folder constants are mapped to the "user" forms, even if administrative privileges are available. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p>
 <p><b>On earlier versions of Windows:</b></p>
 <p>This directive specifies the minimum user privileges required to run the installation.</p>
 <p>When set to <tt>admin</tt> (the default), Setup will only run if the user is a member of the Administrators group. Otherwise, it will display the following message and exit: "You must be logged in as an administrator when installing this program."</p>
 <p>When set to <tt>poweruser</tt>, Setup will only run if the user is a member of the Administrators or Power Users groups. Otherwise, it will display the following message and exit: "You must be logged in as an administrator or as a member of the Power Users group when installing this program."</p>
-<p>When set to <tt>none</tt> Setup will not check the user's group membership. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p>
+<!-- <p>When set to <tt>none</tt> Setup will not check the user's group membership. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p> -->
 <p>When set to <tt>lowest</tt> Setup will not check the user's group membership. Additionally, the uninstall info root key will always be HKEY_CURRENT_USER, and the "common" forms of the Shell Folder constants are mapped to the "user" forms, even if administrative privileges are available. Do not use this setting unless you are sure your installation will run successfully on unprivileged accounts.</p>
+<p><b>Note:</b></p>
+<p>Regardless of the version of Windows, only if the installation is per-user (<tt>PrivilegesRequired=lowest</tt>) you may touch Windows' per-user areas from your script.</p>
 </body>
 </setuptopic>
 
@@ -4024,6 +4031,14 @@ end;</pre></example>
 <setupdefault><tt>no</tt></setupdefault>
 <body>
 <p>Normally, Inno Setup's <tt>{group}</tt> constant points to the All Users start menu if the user has administrative privileges. If this directive is set to <tt>yes</tt>, it always uses current user's profile.</p>
+</body>
+</setuptopic>
+
+<setuptopic directive="Output">
+<setupvalid><link topic="yesnonotes"><tt>yes</tt> or <tt>no</tt></link></setupvalid>
+<setupdefault><tt>yes</tt></setupdefault>
+<body>
+<p>If set to <tt>no</tt> the Setup Compiler will only check the script for errors and skip creating setup files.</p>
 </body>
 </setuptopic>
 
@@ -4461,7 +4476,7 @@ DiskSliceSize=1457664
 <setupdefault><tt>Output</tt></setupdefault>
 <body>
 <p>Specifies the "output" directory for the script, which is where the Setup Compiler will place the resulting SETUP.* files. By default, it creates a directory named "Output" under the directory containing the script for this.</p>
-<p>If <tt>OutputDir</tt> is not a fully-qualified pathname, it will be treated as being relative to <tt>SourceDir</tt>, unless the pathname is prefixed by "userdocs:", in which case it will be treated as being relative to the the My Documents folder of the currenly logged-in user. Setting <tt>OutputDir</tt> to <tt>.</tt> will result in the files being placed in the source directory.</p>
+<p>If <tt>OutputDir</tt> is not a fully-qualified pathname, it will be treated as being relative to <tt>SourceDir</tt>, unless the pathname is prefixed by "userdocs:", in which case it will be treated as being relative to the the My Documents folder of the currenlty logged-in user. Setting <tt>OutputDir</tt> to <tt>.</tt> will result in the files being placed in the source directory.</p>
 <example><pre>OutputDir=c:\output</pre></example>
 </body>
 </setuptopic>
@@ -4867,6 +4882,20 @@ SignTool=byparam format c:
 </example>
 <p>Details on obtaining signing certificates and using code-signing tools are beyond the scope of this documentation.</p>
 <p><i>Note:</i> If you use a Sign Tool and your Setup contains a large amount of data, it is recommended that you enable <link topic="setup_diskspanning">Disk spanning</link> with <link topic="setup_diskslicesize">DiskSliceSize</link> set to <tt>max</tt>. If you don't do this, the user might experience a long delay after starting Setup caused by Windows verifying the digital signature against all your data. There should be no security reduction from using disk spanning in practice: all files extracted from the unsigned .bin files undergo SHA-1 verification (provided <tt>dontverifychecksum</tt> isn't used). The SHA-1 hashes for this (along with all other metadata) are kept inside Setup's EXE, which is protected by the digital signature.</p>
+<p><b>See also:</b><br/>
+<link topic="setup_signtoolretrycount">SignToolRetryCount</link></p>
+</body>
+</setuptopic>
+
+<setuptopic directive="SignToolRetryCount">
+<keyword value="signature" />
+<keyword value="digital signature" />
+<keyword value="code signing" />
+<setupdefault><tt>2</tt></setupdefault>
+<body>
+<p>Specifies the number of times the Setup Compiler should automatically retry digital signing on any errors.</p>
+<p><b>See also:</b><br/>
+<link topic="setup_signtool">SignTool</link></p>
 </body>
 </setuptopic>
 
@@ -5061,6 +5090,8 @@ SignTool=byparam format c:
 <tr><td>6.1.7600</td><td>Windows 7<br/>or Windows Server 2008 R2</td></tr>
 <tr><td>6.1.7601</td><td>Windows 7 with Service Pack 1<br/>or Windows Server 2008 R2 with Service Pack 1</td></tr>
 <tr><td>6.2.9200</td><td>Windows 8<br/>or Windows Server 2012</td></tr>
+<tr><td>6.3.9200</td><td>Windows 8.1<br/>or Windows Server 2012 R2</td></tr>
+<tr><td>6.3.9600</td><td>Windows 8.1 with Update 1</td></tr>
 </table>
 <p>Note that there is normally no need to specify the build numbers (i.e., you may simply use "5.1" for Windows XP).</p>
 </body>

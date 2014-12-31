@@ -1,4 +1,4 @@
-; *** Inno Setup version 5.5.0+ English messages ***
+; *** Inno Setup version 5.5.3+ Bosnian messages ***
 ;
 ; Bosnian translation by Kenan Dervisevic (kenan3008@gmail.com)
 ;
@@ -6,7 +6,7 @@
 [LangOptions]
 LanguageName=Bosanski
 LanguageID=$141a
-LanguageCodePage=0
+LanguageCodePage=1250
 ; If the language you are translating to requires special font faces or
 ; sizes, uncomment any of the following entries and change them accordingly.
 ;DialogFontName=
@@ -177,7 +177,7 @@ MustEnterGroupName=Morate unijeti ime programske grupe.
 GroupNameTooLong=Naziv foldera ili putanje je predug.
 InvalidGroupName=Naziv foldera nije ispravan.
 BadGroupName=Naziv foldera ne smije sadržavati niti jedan od sljedeæih znakova:%n%n%1
-NoProgramGroupCheck2=&Ne kreiraj %1 programsku grupu
+NoProgramGroupCheck2=&Ne kreiraj programsku grupu
 
 ; *** "Ready to Install" wizard page
 WizardReady=Spreman za instalaciju
@@ -200,6 +200,7 @@ ApplicationsFound=Sljedeæe aplikacije koriste datoteke koje ova instalacija treb
 ApplicationsFound2=Sljedeæe aplikacije koriste datoteke koje ova instalacija treba da nadogradi. Preporuèujemo vam da omoguæite instalaciji da automatski zatvori ove aplikacije. Nakon što se sve završi, bit æe izvršen pokušaj ponovnog pokretanja ovih aplikacija.
 CloseApplications=&Automatski zatvori aplikacije
 DontCloseApplications=&Ne zatvaraj aplikacije
+ErrorCloseApplications=Instalacija nije mogla automatski zatvoriti sve aplikacije. Prije nego nastavite, preporuèujemo vam da zatvorite sve aplikacije koje koriste datoteke koje æe ova instalacija trebati da ažurira.
 
 ; *** "Installing" wizard page
 WizardInstalling=Instaliram
@@ -299,7 +300,7 @@ UninstallDataCorrupted="%1" datoteka je ošteæena. Deinstalacija nije moguæa.
 
 ; *** Uninstallation phase messages
 ConfirmDeleteSharedFileTitle=Ukloni dijeljenu datoteku
-ConfirmDeleteSharedFile2=Sistem ukazuje da sljedeæe dijeljene datoteke ne koristi nijedan drugi program. Želite li da Deinstalacija ukloni te dijeljene datoteke?%n%nAko neki programi i dalje koriste te datoteke, a one se obrišu, ti programi neæe raditi ispravno. Ako niste sigurni, odaberite Ne. Ostavljanje datoteka neæe uzrokovati štetu vašem sistemu.
+ConfirmDeleteSharedFile2=Sistem smatra da sljedeæe dijeljene datoteke ne koristi nijedan drugi program. Želite li ukloniti te dijeljene datoteke?%n%nAko neki programi i dalje koriste ove datoteke, a one se obrišu, ti programi neæe raditi ispravno. Ako niste sigurni, odaberite Ne. Ostavljanje datoteka neæe uzrokovati štetu vašem sistemu.
 SharedFileNameLabel=Datoteka:
 SharedFileLocationLabel=Putanja:
 WizardUninstalling=Status deinstalacije
@@ -317,7 +318,7 @@ ShutdownBlockReasonUninstallingApp=Deinstaliram %1.
 NameAndVersion=%1 verzija %2
 AdditionalIcons=Dodatne ikone:
 CreateDesktopIcon=Kreiraj &desktop ikonu
-CreateQuickLaunchIcon=Kreiraj &Quick Launch ikonu
+CreateQuickLaunchIcon=Kreiraj ikonu za &brzo pokretanje
 ProgramOnTheWeb=%1 na webu
 UninstallProgram=Deinstaliraj %1
 LaunchProgram=Pokreni %1

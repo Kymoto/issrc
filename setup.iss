@@ -8,7 +8,7 @@
 [Setup]
 AppName=Inno Setup
 AppId=Inno Setup 5
-AppVersion=5.5.3
+AppVersion=5.5.5
 AppPublisher=jrsoftware.org
 AppPublisherURL=http://www.innosetup.com/
 AppSupportURL=http://www.innosetup.com/
@@ -57,10 +57,12 @@ Name: no; MessagesFile: "files\Languages\Norwegian.isl"
 Name: pl; MessagesFile: "files\Languages\Polish.isl"
 Name: pt; MessagesFile: "files\Languages\Portuguese.isl"
 Name: ru; MessagesFile: "files\Languages\Russian.isl"
+Name: sg; MessagesFile: "files\Languages\ScottishGaelic.isl"
 Name: se; MessagesFile: "files\Languages\SerbianLatin.isl"
 Name: se2; MessagesFile: "files\Languages\SerbianCyrillic.isl"
 Name: sl2; MessagesFile: "files\Languages\Slovenian.isl"
 Name: sp; MessagesFile: "files\Languages\Spanish.isl"
+Name: tu; MessagesFile: "files\Languages\Turkish.isl"
 Name: uk; MessagesFile: "files\Languages\Ukrainian.isl"
 
 [Messages]
@@ -93,7 +95,7 @@ Source: "license.txt"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "ishelp\Staging\ISetup.chm"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\Compil32.exe"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\isscint.dll"; DestDir: "{app}"; Flags: ignoreversion touch
-Source: "files\ISCC.exe"; DestDir: "{app}"; Flags: ignoreversion touch; Check: not ISPPCheck
+Source: "files\ISCC.exe"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\ISCmplr.dll"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\Setup.e32"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\SetupLdr.e32"; DestDir: "{app}"; Flags: ignoreversion touch
@@ -119,10 +121,12 @@ Source: "files\Languages\Norwegian.isl"; DestDir: "{app}\Languages"; Flags: igno
 Source: "files\Languages\Polish.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\Portuguese.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\Russian.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
+Source: "files\Languages\ScottishGaelic.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\SerbianCyrillic.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\SerbianLatin.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\Slovenian.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\Spanish.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
+Source: "files\Languages\Turkish.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\Languages\Ukrainian.isl"; DestDir: "{app}\Languages"; Flags: ignoreversion touch
 Source: "files\WizModernImage.bmp"; DestDir: "{app}"; Flags: ignoreversion touch
 Source: "files\WizModernImage-IS.bmp"; DestDir: "{app}"; Flags: ignoreversion touch
@@ -141,13 +145,11 @@ Source: "Examples\Example1.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion
 Source: "Examples\Example2.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\Example3.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\64Bit.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
-Source: "Examples\64BitThreeArch.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\64BitTwoArch.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\Components.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\Languages.iss"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\MyProg.exe"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\MyProg-x64.exe"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
-Source: "Examples\MyProg-IA64.exe"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\MyProg.chm"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\Readme.txt"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 Source: "Examples\Readme-Dutch.txt"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
@@ -169,7 +171,6 @@ Source: "Examples\ISPPExample1.iss"; DestDir: "{app}\Examples"; Flags: ignorever
 Source: "Examples\ISPPExample1License.txt"; DestDir: "{app}\Examples"; Flags: ignoreversion touch
 ; ISPP files
 Source: "Projects\ISPP\Help\Staging\ISPP.chm"; DestDir: "{app}"; Flags: ignoreversion touch
-Source: "files\ISPPCC.exe"; DestDir: "{app}"; DestName: "ISCC.exe"; Flags: ignoreversion touch; Check: ISPPCheck
 Source: "files\ISPP.dll"; DestDir: "{app}"; Flags: ignoreversion touch; Check: ISPPCheck
 Source: "files\ISPPBuiltins.iss"; DestDir: "{app}"; Flags: ignoreversion touch; Check: ISPPCheck
 
@@ -298,7 +299,7 @@ procedure InitializeWizard;
 begin
   CreateCustomPages;
   
-  ISPPCheckBox.Checked := GetPreviousData('ISPP', '1') = '1';
+  ISPPCheckBox.Checked := (GetPreviousData('ISPP', '1') = '1') or (ExpandConstant('{param:ispp|0}') = '1');
 end;
 
 procedure RegisterPreviousData(PreviousDataKey: Integer);

@@ -117,7 +117,11 @@ const
   );
 
   { InstFunc }
+{$IFNDEF PS_NOINT64}
+  InstFuncTable: array [0..27] of AnsiString =
+{$ELSE}
   InstFuncTable: array [0..26] of AnsiString =
+{$ENDIF}
   (
     'function CheckForMutexes(Mutexes: String): Boolean;',
     'function DecrementSharedCount(const Is64Bit: Boolean; const Filename: String): Boolean;',
@@ -133,6 +137,9 @@ const
     'function GetSHA1OfString(const S: AnsiString): String;',
     'function GetSHA1OfUnicodeString(const S: String): String;',
     'function GetSpaceOnDisk(const DriveRoot: String; const InMegabytes: Boolean; var Free, Total: Cardinal): Boolean;',
+{$IFNDEF PS_NOINT64}
+    'function GetSpaceOnDisk64(const DriveRoot: String; var Free, Total: Int64): Boolean;',
+{$ENDIF}
     'function GetUserNameString: String;',
     //function GrantPermissionOnFile(const Filename: String; const Entries: TGrantPermissionEntry; const EntryCount: Integer): Boolean;
     //function GrantPermissionOnKey(const RootKey: HKEY; const Subkey: String; const Entries: TGrantPermissionEntry; const EntryCount: Integer): Boolean;
@@ -152,7 +159,7 @@ const
     //procedure Win32ErrorMsg(const FunctionName: String);
     'function ForceDirectories(Dir: string): Boolean;'
   );
-
+  
   { InstFnc2 }
   InstFnc2Table: array [0..2] of AnsiString =
   (
@@ -281,7 +288,7 @@ const
   );
 
   { Other }
-  OtherTable: array [0..26] of AnsiString =
+  OtherTable: array [0..27] of AnsiString =
   (
     'procedure BringToFrontAndRestore;',
     'function WizardDirValue: String;',
@@ -293,7 +300,8 @@ const
     'function WizardSilent: Boolean;',
     'function IsUninstaller: Boolean;',
     'function UninstallSilent: Boolean;',
-    'function CurrentFileName: String;',
+    'function CurrentFilename: String;',
+    'function CurrentSourceFilename: String;',
     'function CastStringToInteger(var S: String): Longint;',
     'function CastIntegerToString(const L: Longint): String;',
     'procedure Abort;',

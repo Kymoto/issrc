@@ -103,6 +103,7 @@ const
   SCompilerStatusFilesVerInfo = '   Reading version info: %s';
   SCompilerStatusReadingFile = 'Reading file (%s)';
   SCompilerStatusPreparingSetupExe = 'Preparing Setup program executable';
+  SCompilerStatusSkippingPreparingSetupExe = 'Skipping preparing Setup program executable, output is disabled';
   SCompilerStatusSignedUninstallerNew = '   Creating new signed uninstaller file: %s';
   SCompilerStatusSignedUninstallerExisting = '   Using existing signed uninstaller file: %s';
   SCompilerStatusDeterminingCodePages = 'Determining language code pages';
@@ -114,10 +115,13 @@ const
   SCompilerStatusReadingInFile = '   File: %s';
   SCompilerStatusReadingInScriptMsgs = '   Messages in script file';
   SCompilerStatusCreateSetupFiles = 'Creating setup files';
+  SCompilerStatusSkippingCreateSetupFiles = 'Skipping creating setup files, output is disabled';
   SCompilerStatusCreateManifestFile = 'Creating manifest file';
   SCompilerStatusFilesInitEncryption = '   Initializing encryption';
   SCompilerStatusFilesCompressing = '   Compressing: %s';
   SCompilerStatusFilesCompressingVersion = '   Compressing: %s   (%u.%u.%u.%u)';
+  SCompilerStatusFilesStoring = '   Storing: %s';
+  SCompilerStatusFilesStoringVersion = '   Storing: %s   (%u.%u.%u.%u)';
   SCompilerStatusCompressingSetupExe = '   Compressing Setup program executable';
   SCompilerStatusUpdatingVersionInfo = '   Updating version info';
   SCompilerStatusUpdatingIcons = '   Updating icons (%s)';
@@ -129,6 +133,7 @@ const
   SCompilerStatusWarning = 'Warning: ';
   SCompilerStatusSigningSetup = '   Signing Setup program executable';
   SCompilerStatusSigning = '   Running Sign Tool command: %s';
+  SCompilerStatusWillRetrySigning = '   Sign Tool command failed (%s). Will retry (%d tries left).';
 
   SCompilerSuccessfulMessage2 = 'The setup images were successfully created ' +
     'in the output directory:' + SNewLine +
@@ -136,7 +141,8 @@ const
     SNewLine +
     'Would you like to test the installation now?';
   SCompilerSuccessfulTitle = 'Compile Successful';
-  SCompilerNeedUninstExe = 'Cannot target Uninstall as this time. Please run Setup successfully to completion first';
+  SCompilerNeedCompiledExe = 'Cannot run Setup at this time. Please compile Setup successfully to completion first, with output enabled';
+  SCompilerNeedUninstExe = 'Cannot run Uninstall at this time. Please run Setup successfully to completion first';
   SCompilerExecuteSetupError2 = 'Error executing "%s":' + SNewLine2 + '%d: %s';
 
   SCompilerAborted = 'Compile aborted. Please correct the problem and try again.';

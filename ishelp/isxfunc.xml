@@ -52,7 +52,7 @@ end;</pre></example>
         <name>FmtMessage</name>
         <prototype>function FmtMessage(const S: String; const Args: array of String): String;</prototype>
         <description><p>Formats the string S using the specified string arguments. A <tt>%1</tt> in the format string will be replaced with the first value in the Args array; a <tt>%2</tt> will be replaced with the second value; and so on. <tt>%%</tt> will be replaced with <tt>%</tt>.</p></description>
-        <remarks><p>If a <tt>%</tt>-specifier references a non-existant argument, it will be returned untouched. No exception will be raised.</p></remarks>
+        <remarks><p>If a <tt>%</tt>-specifier references a non-existing argument, it will be returned untouched. No exception will be raised.</p></remarks>
         <example><pre>var
   S: String;
 begin
@@ -128,10 +128,16 @@ end;</pre></example>
     </subcategory>
     <subcategory>
       <function>
-        <name>CurrentFileName</name>
-        <prototype>function CurrentFileName: String;</prototype>
-        <description><p>Returns the destination name of the [Files] entry that is currently being processed. The returned name may include constants.</p>
+        <name>CurrentFilename</name>
+        <prototype>function CurrentFilename: String;</prototype>
+        <description><p>Returns the destination file name of the [Files] entry that is currently being processed. The returned name may include constants.</p>
 <p>Do not attempt to call this function from outside a Check, BeforeInstall or AfterInstall event function belonging to a [Files] entry.</p></description>
+      </function>
+      <function>
+        <name>CurrentSourceFilename</name>
+        <prototype>function CurrentSourceFilename: String;</prototype>
+        <description><p>Returns the source file name of the [Files] entry that is currently being processed. The returned name may include constants.</p>
+<p>Do not attempt to call this function from outside a Check, BeforeInstall or AfterInstall event function belonging to a [Files] entry with the "external" flag.</p></description>
       </function>
     </subcategory>
     <subcategory>
@@ -176,10 +182,11 @@ end;</pre></example>
 <p>The extracted files are automatically deleted when Setup exits.</p>
 <p>An exception will be raised if the file wasn't extracted successfully, if the file wasn't found, or if the file was found but couldn't be processed because of its MinVersion and/or OnlyBelowVersion parameters.</p></description>
         <remarks><p>Use <tt>Flags: dontcopy</tt> in the [Files] section to tell Setup to skip the file during the normal file copying stage.</p>
+<p>Use <tt>Flags: noencryption</tt> in the [Files] section if encryption is enabled and you call the ExtractTemporaryFile function prior to the user entering the correct password.</p>
 <p>When solid compression is enabled, be sure to list your temporary files at (or near) the top of the [Files] section. In order to extract an arbitrary file in a solid-compressed installation, Setup must first decompress all prior files (to a temporary buffer in memory). This can result in a substantial delay if a number of other files are listed above the specified file in the [Files] section.</p></remarks>
         <seealso><p><link topic="isxfunc_ExtractTemporaryFiles">ExtractTemporaryFiles</link></p></seealso>
         <example><pre>[Files]
-Source: "Readme.txt"; Flags: dontcopy
+Source: "Readme.txt"; Flags: dontcopy noencryption
 
 [Code]
 function InitializeSetup: Boolean;
@@ -408,7 +415,7 @@ begin
   if Version.SuiteMask and VER_SUITE_PERSONAL &lt;&gt; 0 then
   begin
     SuppressibleMsgBox('This program cannot be installed on a Home edition of Windows.',
-      mbCriticalError, MB_OK, MB_OK);
+      mbCriticalError, MB_OK, IDOK);
     Result := False;
     Exit;
   end;
@@ -417,7 +424,7 @@ begin
   if Version.ProductType = VER_NT_DOMAIN_CONTROLLER then
   begin
     SuppressibleMsgBox('This program cannot be installed on domain controllers.',
-      mbCriticalError, MB_OK, MB_OK);
+      mbCriticalError, MB_OK, IDOK);
     Result := False;
     Exit;
   end;
@@ -429,7 +436,7 @@ begin
      (Version.ServicePackMajor &lt; 4) then
   begin
     SuppressibleMsgBox('When running on Windows 2000, Service Pack 4 is required.',
-      mbCriticalError, MB_OK, MB_OK);
+      mbCriticalError, MB_OK, IDOK);
     Result := False;
     Exit;
   end;
@@ -441,7 +448,7 @@ begin
      (Version.ServicePackMajor &lt; 2) then
   begin
     SuppressibleMsgBox('When running on Windows XP, Service Pack 2 is required.',
-      mbCriticalError, MB_OK, MB_OK);
+      mbCriticalError, MB_OK, IDOK);
     Result := False;
     Exit;
   end;
@@ -699,7 +706,8 @@ end;</pre></example>
         <name>DLLGetLastError</name>
         <prototype>function DLLGetLastError(): Longint;</prototype>
         <description><p>Returns value the last error code had right after the most recent DLL function call you made. Useful after calling Windows API functions (if the function sets the last error code).</p></description>
-        <remarks><p>It's recommended to use this function instead of directly calling the GetLastError Windows API function since Setup or Uninstall makes API calls of its own, so the last error code could be overwritten at any time.</p></remarks>
+        <remarks><p>It's recommended to use this function instead of directly calling the GetLastError Windows API function since Setup or Uninstall makes API calls of its own, so the last error code could be overwritten at any time.</p>
+<p>Refer to the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681381.aspx">system error codes on MSDN</a>.</p></remarks>
         <example><pre>function MessageBox(hWnd: Integer; lpText, lpCaption: AnsiString; uType: Cardinal): Integer; external 'MessageBoxA@user32.dll stdcall';
 
 ...
@@ -725,8 +733,8 @@ begin
       </function>
       <function>
         <name>Copy</name>
-        <prototype>function Copy(S: String; Indx, Count: Integer): String;</prototype>
-        <description><p>Returns a string containing Count characters starting with at S[Index].<br />If Index is larger than the length of S, Copy returns an empty string.<br />If Count specifies more characters than are available, the only the characters from S[Index] to the end of S are returned.</p></description>
+        <prototype>function Copy(S: String; Index, Count: Integer): String;</prototype>
+        <description><p>Returns a string containing Count characters starting at S[Index].<br />If Index is larger than the length of S, Copy returns an empty string.<br />If Count specifies more characters than are available, only the characters from S[Index] to the end of S are returned.</p></description>
       </function>
       <function>
         <name>Length</name>
@@ -760,13 +768,13 @@ begin
       </function>
       <function>
         <name>Delete</name>
-        <prototype>procedure Delete(var S: String; Indx, Count: Integer);</prototype>
+        <prototype>procedure Delete(var S: String; Index, Count: Integer);</prototype>
         <description><p>Removes a substring of Count characters from string S starting at S[Index].<br />If Index is larger than the length of S, no characters are deleted. If Count specifies more characters than remain starting at the S[Index], Delete removes the rest of the string.</p></description>
       </function>
       <function>
         <name>Insert</name>
-        <prototype>procedure Insert(Source: String; var Dest: String; Indx: Integer);</prototype>
-        <description><p>Merges Source into S at the position S[index].</p></description>
+        <prototype>procedure Insert(Source: String; var Dest: String; Index: Integer);</prototype>
+        <description><p>Merges Source into Dest at the position Dest[Index].</p></description>
       </function>
       <function>
         <name>StringChange</name>
@@ -806,7 +814,7 @@ end;</pre></example>
       <function>
         <name>ConvertPercentStr</name>
         <prototype>function ConvertPercentStr(var S: String): Boolean;</prototype>
-        <description><p>Expands all %-encoded characters in the string (see RFC 2396). Returns True if all were successfully expanded.</p></description>
+        <description><p>Expands all %-encoded characters in the string (see <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC 2396</a>). Returns True if all were successfully expanded.</p></description>
       </function>
     </subcategory>
     <subcategory>
@@ -873,9 +881,30 @@ end;</pre></example>
         <remarks><p>Use of <link topic="isxfunc_StrToIntDef">StrToIntDef</link> instead of StrToInt is recommended.</p></remarks>
       </function>
       <function>
+        <name>StrToInt64Def</name>
+        <prototype>function StrToInt64Def(s: string; def: Int64): Int64;</prototype>
+        <description><p>The StrToInt64Def function converts the string passed in S into a 64-bit number. If S does not represent a valid 64-bit number, StrToInt returns the 64-bit number passed in Def.</p><p>Requires Unicode Inno Setup.</p></description>
+      </function>
+      <function>
+        <name>StrToInt64</name>
+        <prototype>function StrToInt64(s: string): Int64;</prototype>
+        <description><p>The StrToInt64 function converts the string passed in S into a 64-bit number.</p><p>Requires Unicode Inno Setup.</p></description>
+        <remarks><p>Use of <link topic="isxfunc_StrToInt64Def">StrToInt64Def</link> instead of StrToInt64 is recommended.</p></remarks>
+      </function>
+      <function>
+        <name>StrToFloat</name>
+        <prototype>function StrToFloat(s: string): Extended;</prototype>
+        <description><p>The StrToFloat function converts the string passed in S into a floating point number. The character used for the decimal point should always be a dot.</p></description>
+      </function>
+      <function>
         <name>IntToStr</name>
-        <prototype>function IntToStr(i: Longint): String;</prototype>
-        <description><p>The IntToStr function converts an integer into a string containing the decimal representation of that number.</p></description>
+        <prototype>function IntToStr(i: Int64): String;</prototype>
+        <description><p>The IntToStr function converts an 32-bit or 64-bit number into a string.</p><p>64-bit numbers require Unicode Inno Setup.</p></description>
+      </function>
+      <function>
+        <name>FloatToStr</name>
+        <prototype>function FloatToStr(e: extended): String;</prototype>
+        <description><p>The FloatToStr function converts a floating point number into a string.</p><p>Unicode Inno Setup: the character used for the decimal point will always be a dot. Non-Unicode Inno Setup: the character used for the decimal point is locale-dependant.</p></description>
       </function>
     </subcategory>
     <subcategory>
@@ -1103,6 +1132,7 @@ end;
         <name>SysErrorMessage</name>
         <prototype>function SysErrorMessage(ErrorCode: Integer): String;</prototype>
         <description><p>Returns a localized error message string that corresponds to the given operating system error code.</p></description>
+        <remarks><p>Refer to the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681381.aspx">system error codes on MSDN</a>.</p></remarks>
       </function>
     </subcategory>
     <subcategory>
@@ -1111,6 +1141,7 @@ end;
         <prototype>function MinimizePathName(const Filename: String; const Font: TFont; MaxLen: Integer): String;</prototype>
         <description><p>Returns a minimized filename that will not take more than MaxLen pixels to display with the given font. The minimizing is done by replacing the middle part with '...' as needed.</p></description>
         <example><pre>MyLabel.Caption := MinimizePathName(MyPathName, MyLabel.Font, MyLabel.Width);</pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TFont">TFont</link></p></seealso>
       </function>
     </subcategory>
   </category>
@@ -1147,7 +1178,15 @@ end;
       <function>
         <name>VarIsEmpty</name>
         <prototype>function VarIsEmpty(const V: Variant): Boolean;</prototype>
-        <description><p>Returns True if the specified variant has no value assigned.</p></description>
+        <description><p>Non Unicode Inno Setup: Returns True if the specified variant's value is undefined. Unicode Inno Setup: Returns True if the specified variant is unassigned.</p></description>
+        <seealso><p><link topic="isxfunc_VarIsClear">VarIsClear</link></p></seealso>
+      </function>
+      <function>
+        <name>VarIsClear</name>
+        <prototype>function VarIsClear(const V: Variant): Boolean;</prototype>
+        <description><p>Returns True if the specified variant's value is undefined.</p></description>
+        <remarks><p>Requires Unicode Inno Setup.</p></remarks>
+        <seealso><p><link topic="isxfunc_VarIsEmpty">VarIsEmpty</link></p></seealso>
       </function>
       <function>
         <name>VarIsNull</name>
@@ -1183,7 +1222,7 @@ const
   varByRef    = $4000;
 </pre>
 </description>
-      </function>     
+      </function>
     </subcategory>
   </category>
   <category>
@@ -1229,6 +1268,29 @@ begin
     // the function failed
   end;
 end;</pre></example>
+        <seealso><p><link topic="isxfunc_GetSpaceOnDisk64">GetSpaceOnDisk64</link></p></seealso>
+      </function>
+      <function>
+        <name>GetSpaceOnDisk64</name>
+        <prototype>function GetSpaceOnDisk64(const Path: String; var Free, Total: Int64): Boolean;</prototype>
+        <description><p>Returns the number of free and total bytes on a drive. Path specifies a directory on the drive or UNC share to check; it can be either the root (e.g. <tt>C:\</tt>) or an existing subdirectory. Returns True if successful, False otherwise.</p></description>
+        <remarks><p>Requires Unicode Inno Setup.</p></remarks>
+        <example><pre>var
+  Path: String;
+  FreeBytes, TotalBytes: Int64;
+begin
+  // Get and display free bytes on the Program Files drive
+  Path := ExpandConstant('{pf}');
+  if GetSpaceOnDisk64(Path, FreeBytes, TotalBytes) then
+  begin
+    MsgBox('There are ' + IntToStr(FreeBytes) + ' bytes free on ' +
+      Path, mbInformation, MB_OK);
+  end
+  else begin
+    // the function failed
+  end;
+end;</pre></example>
+        <seealso><p><link topic="isxfunc_GetSpaceOnDisk">GetSpaceOnDisk</link></p></seealso>
       </function>
     </subcategory>
     <subcategory>
@@ -1279,7 +1341,7 @@ end;</pre></example>
   FILE_ATTRIBUTE_NOT_CONTENT_INDEXED
   FILE_ATTRIBUTE_ENCRYPTED
 </pre></description>
-        <remarks><p>If FindFirst returns True, call FindNext to enumerate the rest of the files, and then FindClose.</p></remarks>
+        <remarks><p>If FindFirst returns True, call <link topic="isxfunc_FindNext">FindNext</link> to enumerate the rest of the files, and then <link topic="isxfunc_FindClose">FindClose</link>.</p></remarks>
         <example><p>The following example counts the number of files in the Windows System directory.</p>
 <pre>var
   FilesFound: Integer;
@@ -1300,18 +1362,24 @@ begin
   MsgBox(IntToStr(FilesFound) + ' files found in the System directory.',
     mbInformation, MB_OK);
 end;</pre></example>
+        <seealso><p><link topic="isxfunc_FindNext">FindNext</link><br />
+<link topic="isxfunc_FindClose">FindClose</link></p></seealso>
       </function>
       <function>
         <name>FindNext</name>
         <prototype>function FindNext(var FindRec: TFindRec): Boolean;</prototype>
-        <description><p>Retrieves information about the next matching file after a call to FindFirst. Returns True if successful.</p></description>
-        <example><p>For an example, see the documentation for FindFirst.</p></example>
+        <description><p>Retrieves information about the next matching file after a call to <link topic="isxfunc_FindFirst">FindFirst</link>. Returns True if successful.</p></description>
+        <example><p>For an example, see the documentation for <link topic="isxfunc_FindFirst">FindFirst</link>.</p></example>
+        <seealso><p><link topic="isxfunc_FindFirst">FindFirst</link><br />
+<link topic="isxfunc_FindClose">FindClose</link></p></seealso>
       </function>
       <function>
         <name>FindClose</name>
         <prototype>procedure FindClose(var FindRec: TFindRec);</prototype>
-        <description><p>Ends a find sequence, and frees the resources associated with it. You should always call this when FindFirst returns True.</p></description>
-        <example><p>For an example, see the documentation for FindFirst.</p></example>
+        <description><p>Ends a find sequence, and frees the resources associated with it. You should always call this when <link topic="isxfunc_FindFirst">FindFirst</link> returns True.</p></description>
+        <example><p>For an example, see the documentation for <link topic="isxfunc_FindFirst">FindFirst</link>.</p></example>
+        <seealso><p><link topic="isxfunc_FindFirst">FindFirst</link><br />
+<link topic="isxfunc_FindNext">FindNext</link></p></seealso>
       </function>
     </subcategory>
     <subcategory>
@@ -1484,7 +1552,7 @@ end;</pre></example>
       <function>
         <name>Exec</name>
         <prototype>function Exec(const Filename, Params, WorkingDir: String; const ShowCmd: Integer; const Wait: TExecWait; var ResultCode: Integer): Boolean;</prototype>
-        <description><p>Executes the specified executable or batch file, using the same credentials as Setup/Uninstall. The Wait parameter specifies whether the function should return immediately or wait until the launched process has termimated or is idle. Returns True if the specified file was executed successfully, False otherwise. If True is returned and Wait is ewWaitUntilTerminated then ResultCode returns the exit code of the process. If False is returned then ResultCode specifies the error that occurred. Use SysErrorMessage(ResultCode) to get a description of the error.</p></description>
+        <description><p>Executes the specified executable or batch file, using the same credentials as Setup/Uninstall. The Wait parameter specifies whether the function should return immediately or wait until the launched process has terminated or is idle. Returns True if the specified file was executed successfully, False otherwise. If True is returned and Wait is ewWaitUntilTerminated then ResultCode returns the exit code of the process. If False is returned then ResultCode specifies the error that occurred. Use SysErrorMessage(ResultCode) to get a description of the error.</p></description>
         <remarks><p>TExecWait is defined as:</p>
 <p><tt>TExecWait = (ewNoWait, ewWaitUntilTerminated, ewWaitUntilIdle);</tt></p>
 <p>Use the <link topic="isxfunc_ShellExec">ShellExec</link> function instead if you need to launch a file that is not an executable or batch file.</p>
@@ -1517,10 +1585,11 @@ end;</pre></example>
       <function>
         <name>ShellExec</name>
         <prototype>function ShellExec(const Verb, Filename, Params, WorkingDir: String; const ShowCmd: Integer; const Wait: TExecWait; var ErrorCode: Integer): Boolean;</prototype>
-        <description><p>Opens the specified file or performs another action specified by Verb, using the same credentials as Setup/Uninstall. The filename can be an executable file, a document file, a folder, or a URL. Verb may be an empty string, in which case the default verb for the file type is used (usually "open"). The Wait parameter specifies whether the function should return immediately or wait until the launched process has termimated or is idle. Returns True if the specified file was opened successfully, False otherwise. If False is returned then ErrorCode specifies the error that occurred. Use SysErrorMessage(ErrorCode) to get a description of the error.</p></description>
+        <description><p>Opens the specified file or performs another action specified by Verb, using the same credentials as Setup/Uninstall. The filename can be an executable file, a document file, a folder, or a URL. Verb may be an empty string, in which case the default verb for the file type is used (usually "open"). The Wait parameter specifies whether the function should return immediately or wait until the launched process has terminated or is idle. Returns True if the specified file was opened successfully, False otherwise. If False is returned then ErrorCode specifies the error that occurred. Use SysErrorMessage(ErrorCode) to get a description of the error.</p></description>
         <remarks><p>TExecWait is defined as:</p>
 <p><tt>TExecWait = (ewNoWait, ewWaitUntilTerminated, ewWaitUntilIdle);</tt></p>
-<p>Note that passing a Wait value other than <tt>ewNoWait</tt> will have no effect if a new process isn't spawned (for example, if the file is opened inside an already-running instance of the program that handles the file type).</p></remarks>
+<p>Note that passing a Wait value other than <tt>ewNoWait</tt> will have no effect if a new process isn't spawned (for example, if the file is opened inside an already-running instance of the program that handles the file type).</p>
+<p>Refer to the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681381.aspx">system error codes on MSDN</a>.</p></remarks>
         <example><pre>var
   ErrorCode: Integer;
 begin
@@ -1537,7 +1606,8 @@ end;</pre></example>
         <prototype>function ShellExecAsOriginalUser(const Verb, Filename, Params, WorkingDir: String; const ShowCmd: Integer; const Wait: TExecWait; var ErrorCode: Integer): Boolean;</prototype>
         <description><p>Opens the specified file or performs another action specified by Verb, using the (normally non-elevated) credentials of the user that started Setup initially. See <link topic="isxfunc_ShellExec">ShellExec</link> and the [Run] section flag <tt>runasoriginaluser</tt> for more information.</p></description>
         <remarks><p>This function is not supported at uninstall time.</p>
-<p>In very unusual failure cases (e.g. if the initial Setup process died unexpectedly), it is possible for this function to raise an exception instead of just returning False.</p></remarks>
+<p>In very unusual failure cases (e.g. if the initial Setup process died unexpectedly), it is possible for this function to raise an exception instead of just returning False.</p>
+<p>Refer to the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681381.aspx">system error codes on MSDN</a>.</p></remarks>
       </function>
     </subcategory>
     <subcategory>
@@ -2002,6 +2072,7 @@ Page.Values[1] := ExpandConstant('{sysuserinfoorg}');
 UserName := Page.Values[0];
 UserCompany := Page.Values[1];
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TInputQueryWizardPage">TInputQueryWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateInputOptionPage</name>
@@ -2032,6 +2103,7 @@ Page.Values[0] := False;
 // Read values into variables
 IsRegisteredUser := Page.Values[0];
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TInputOptionWizardPage">TInputOptionWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateInputDirPage</name>
@@ -2062,6 +2134,7 @@ Page.Values[0] := ExpandConstant('{userappdata}\My Company\My Program');
 // Read value into variable
 DataDir := Page.Values[0];
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TInputDirWizardPage">TInputDirWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateInputFilePage</name>
@@ -2093,6 +2166,7 @@ Page.Values[0] := ExpandConstant('{win}\notepad.exe');
 // Read value into variable
 NotepadLocation := Page.Values[0];
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TInputFileWizardPage">TInputFileWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateOutputMsgPage</name>
@@ -2108,6 +2182,7 @@ Page := CreateOutputMsgPage(wpWelcome,
   'Information', 'Please read the following important information before continuing.',
   'Blah blah blah.');
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TOutputMsgWizardPage">TOutputMsgWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateOutputMsgMemoPage</name>
@@ -2124,6 +2199,7 @@ Page := CreateOutputMsgMemoPage(wpWelcome,
   'When you are ready to continue with Setup, click Next.',
   'Blah blah blah.');
 </pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TOutputMsgMemoWizardPage">TOutputMsgMemoWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateOutputProgressPage</name>
@@ -2136,29 +2212,33 @@ Page := CreateOutputMsgMemoPage(wpWelcome,
 <p>To display or update the progress bar, call the <tt>SetProgress</tt> method. <tt>SetProgress</tt> takes two integer parameters: the first specifies the position of the progress bar (zero-based), and the second specifies the highest possible position. If the second parameter is 0, the progress bar will be hidden.
 </p></remarks>
         <example><p>See <i>CodeDlg.iss</i> for an example.</p></example>
+        <seealso><p><link topic="scriptclasses" anchor="TOutputProgressWizardPage">TOutputProgressWizardPage</link></p></seealso>
       </function>
       <function>
         <name>CreateCustomPage</name>
         <prototype>function CreateCustomPage(const AfterID: Integer; const ACaption, ADescription: String): TWizardPage;</prototype>
-        <description><p>Creates a custom wizard page. The page is empty by default; you have to create your own controls afterward and place them on the page (by setting their Parent properties to the Surface property of the TWizardPage instance returned by this function).</p></description>
+        <description><p>Creates a custom wizard page. The page is empty by default; you have to create your own controls afterward and place them on the page (by setting their Parent properties to the Surface property of the <link topic="scriptclasses" anchor="TWizardPage">TWizardPage</link> instance returned by this function).</p></description>
         <example><p>See <i>CodeClasses.iss</i> for an example.</p></example>
+        <seealso><p><link topic="scriptclasses" anchor="TWizardPage">TWizardPage</link></p></seealso>
       </function>
     </subcategory>
     <subcategory>
       <function>
         <name>CreateCustomForm</name>
         <prototype>function CreateCustomForm: TSetupForm;</prototype>
-        <description><p>Creates a form. The form is empty by default; you have to create your own controls afterward and place them on the form (by setting their Parent properties to the TSetupForm instance returned by this function).</p></description>
-        <remarks><p>You should call this function instead of creating TForm or TSetupForm instances directly. This function automatically initializes the font and other properties of the created form to be like Setup's other dialogs.</p>
+        <description><p>Creates a form. The form is empty by default; you have to create your own controls afterward and place them on the form (by setting their Parent properties to the <link topic="scriptclasses" anchor="TSetupForm">TSetupForm</link> instance returned by this function).</p></description>
+        <remarks><p>You should call this function instead of creating <link topic="scriptclasses" anchor="TForm">TForm</link> or <link topic="scriptclasses" anchor="TSetupForm">TSetupForm</link> instances directly. This function automatically initializes the font and other properties of the created form to be like Setup's other dialogs.</p>
 <p>The <tt>[LangOptions]</tt> section's <tt>DialogFontName</tt> and <tt>DialogFontSize</tt> directives determine the font used by the form and, by default, any child controls created on the form.</p></remarks>
         <example><p>See <i>CodeClasses.iss</i> for an example.</p></example>
+        <seealso><p><link topic="scriptclasses" anchor="TForm">TForm</link><br />
+<link topic="scriptclasses" anchor="TSetupForm">TSetupForm</link></p></seealso>
       </function>
     </subcategory>
     <subcategory>
       <function>
         <name>PageFromID</name>
         <prototype>function PageFromID(const ID: Integer): TWizardPage;</prototype>
-        <description><p>Given a page ID, returns a TWizardPage instance. Call this if, for example, you need to get at the surface of a page and only know its ID.</p>
+        <description><p>Given a page ID, returns a <link topic="scriptclasses" anchor="TWizardPage">TWizardPage</link> instance. Call this if, for example, you need to get at the surface of a page and only know its ID.</p>
 <p>An exception will be raised if an invalid page ID is specified.</p></description>
         <example><pre>var
   Page: TWizardPage;
@@ -2166,6 +2246,7 @@ begin
   Page := PageFromID(wpWelcome);
   Page.Surface.Color := clBlue;
 end;</pre></example>
+        <seealso><p><link topic="scriptclasses" anchor="TWizardPage">TWizardPage</link></p></seealso>
       </function>
       <function>
         <name>PageIndexFromID</name>
@@ -2283,8 +2364,8 @@ end;</pre></example>
       </function>
       <function>
         <name>IDispatchInvoke</name>
-        <prototype>function IDispatchInvoke(Self: IDispatch; PropertySet: Boolean; const Name: String; Par: array of variant): variant;</prototype>
-        <description><p>Use <tt>IDispatchInvoke</tt> to access a COM Automation property or method whose name is a reserved word. Also see the <link topic="scriptautomation" window="main">Using COM Automation objects</link> topic.</p></description>
+        <prototype>function IDispatchInvoke(Self: IDispatch; PropertySet: Boolean; const Name: String; Par: array of Variant): Variant;</prototype>
+        <description><p>Use <tt>IDispatchInvoke</tt> to access a COM Automation property or method whose name is a reserved word.</p></description>
         <example><pre>var
   AObject: Variant;
   AType: String;
@@ -2296,6 +2377,7 @@ begin
   // Get a property or call a method named 'Type'
   AType := IDispatchInvoke(AObject, False, 'Type', ['']);
 end;</pre></example>
+        <seealso><p><link topic="scriptautomation" window="main">Using COM Automation objects</link></p></seealso>
       </function>
       <function>
         <name>CreateComObject</name>
@@ -2305,12 +2387,14 @@ end;</pre></example>
       <function>
         <name>StringToGUID</name>
         <prototype>function StringToGUID(const S: String): TGUID;</prototype>
-        <description><p>StringToGUID converts the string representation of a GUID into a 'real' GUID. An exception will be raised upon failure. Also see the <link topic="scriptautomation" window="main">Using COM Automation objects</link> topic.</p></description>
+        <description><p>StringToGUID converts the string representation of a GUID into a 'real' GUID. An exception will be raised upon failure.</p></description>
+        <seealso><p><link topic="scriptautomation" window="main">Using COM Automation objects</link></p></seealso>
       </function>
       <function>
         <name>OleCheck</name>
         <prototype>procedure OleCheck(Result: HResult);</prototype>
-        <description><p>Use OleCheck to wrap any IUnknown based COM methods you call, so that if that method fails, an exception will be raised. Also see the <link topic="scriptautomation" window="main">Using COM Automation objects</link> topic.</p></description>
+        <description><p>Use OleCheck to wrap any IUnknown based COM methods you call, so that if that method fails, an exception will be raised.</p></description>
+        <seealso><p><link topic="scriptautomation" window="main">Using COM Automation objects</link></p></seealso>
       </function>
       <function>
         <name>CoFreeUnusedLibraries</name>
@@ -2365,7 +2449,8 @@ end;</pre></example>
         <name>LoadDLL</name>
         <prototype>function LoadDLL(const DLLName: String; var ErrorCode: Integer): Longint;</prototype>
         <description><p>Loads the specified DLL. Returns the DLL handle if the DLL was loaded successfully, zero otherwise. If zero is returned then ErrorCode specifies the error that occurred. Use SysErrorMessage(ErrorCode) to get a description of the error.</p></description>
-        <remarks><p>This function is deprecated. See the <link topic="scriptdll" window="main">Using DLLs</link> topic.</p></remarks>
+        <remarks><p>This function is deprecated. See the <link topic="scriptdll" window="main">Using DLLs</link> topic.</p>
+<p>Refer to the <a href="http://msdn.microsoft.com/en-us/library/windows/desktop/ms681381.aspx">system error codes on MSDN</a>.</p></remarks>
       </function>
       <function>
         <name>CallDLLProc</name>
@@ -2418,7 +2503,7 @@ end;</pre></example>
      <values>IDOK, IDCANCEL, IDABORT, IDRETRY, IDIGNORE, IDYES, IDNO</values>
   </enum>
   <enum>
-     <description>TGetShellFolderID</description>
+     <description>TShellFolderID</description>
      <values>sfDesktop, sfStartMenu, sfPrograms, sfStartup, sfSendTo, sfFonts, sfAppData, sfDocs, sfTemplates, sfFavorites, sfLocalAppData</values>
   </enum>
   <enum>
